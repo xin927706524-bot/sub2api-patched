@@ -167,7 +167,7 @@ func GroupFromServiceAdmin(g *service.Group) *AdminGroup {
 	}
 	// The shared base mapper is user-facing. Admin responses keep the real
 	// billing multiplier and expose the optional display override separately.
-	out.Group.RateMultiplier = g.RateMultiplier
+	out.RateMultiplier = g.RateMultiplier
 	if len(g.AccountGroups) > 0 {
 		out.AccountGroups = make([]AccountGroup, 0, len(g.AccountGroups))
 		for i := range g.AccountGroups {
