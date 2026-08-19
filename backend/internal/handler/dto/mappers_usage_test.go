@@ -46,6 +46,7 @@ func TestUsageLogFromService_AppliesDisplayTokenMultiplierOnlyForUser(t *testing
 		OutputCost:            0.003,
 		ImageInputCost:        0.00002,
 		ImageOutputCost:       0.00003,
+		CacheReadCost:         0.0005,
 		TotalCost:             0.012,
 		ActualCost:            0.0078,
 		RateMultiplier:        0.65,
@@ -68,6 +69,9 @@ func TestUsageLogFromService_AppliesDisplayTokenMultiplierOnlyForUser(t *testing
 	require.Equal(t, 30, userDTO.ImageInputTokens)
 	require.Equal(t, 45, userDTO.ImageOutputTokens)
 	require.Equal(t, 1.2, userDTO.RateMultiplier)
+	require.InDelta(t, 0.0045, userDTO.InputCost, 1e-12)
+	require.InDelta(t, 0.0045, userDTO.OutputCost, 1e-12)
+	require.InDelta(t, 0.00075, userDTO.CacheReadCost, 1e-12)
 	require.Equal(t, 0.0078, userDTO.TotalCost)
 	require.Equal(t, 0.0078, userDTO.ActualCost)
 	require.NotNil(t, userDTO.InputTokenPricePerMillion)
@@ -84,6 +88,9 @@ func TestUsageLogFromService_AppliesDisplayTokenMultiplierOnlyForUser(t *testing
 	require.Equal(t, 50, adminDTO.CacheCreationTokens)
 	require.Equal(t, 25, adminDTO.CacheReadTokens)
 	require.Equal(t, 0.65, adminDTO.RateMultiplier)
+	require.InDelta(t, 0.003, adminDTO.InputCost, 1e-12)
+	require.InDelta(t, 0.003, adminDTO.OutputCost, 1e-12)
+	require.InDelta(t, 0.0005, adminDTO.CacheReadCost, 1e-12)
 	require.Equal(t, 0.012, adminDTO.TotalCost)
 	require.Equal(t, 0.0078, adminDTO.ActualCost)
 	require.InDelta(t, 3, *adminDTO.InputTokenPricePerMillion, 1e-9)

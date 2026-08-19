@@ -650,6 +650,9 @@ func usageLogFromService(l *service.UsageLog, applyDisplayTokenMultiplier bool) 
 	displayTokens := func(tokens int) int {
 		return int(math.Round(float64(tokens) * tokenMultiplier))
 	}
+	displayCost := func(cost float64) float64 {
+		return cost * tokenMultiplier
+	}
 	tokenPricePerMillion := func(cost float64, tokens int) *float64 {
 		if tokens <= 0 {
 			return nil
@@ -683,10 +686,10 @@ func usageLogFromService(l *service.UsageLog, applyDisplayTokenMultiplier bool) 
 		CacheReadTokens:                 displayTokens(l.CacheReadTokens),
 		CacheCreation5mTokens:           displayTokens(l.CacheCreation5mTokens),
 		CacheCreation1hTokens:           displayTokens(l.CacheCreation1hTokens),
-		InputCost:                       l.InputCost,
-		OutputCost:                      l.OutputCost,
+		InputCost:                       displayCost(l.InputCost),
+		OutputCost:                      displayCost(l.OutputCost),
 		CacheCreationCost:               l.CacheCreationCost,
-		CacheReadCost:                   l.CacheReadCost,
+		CacheReadCost:                   displayCost(l.CacheReadCost),
 		InputTokenPricePerMillion:       tokenPricePerMillion(l.InputCost, l.InputTokens-l.ImageInputTokens),
 		OutputTokenPricePerMillion:      tokenPricePerMillion(l.OutputCost, l.OutputTokens-l.ImageOutputTokens),
 		ImageInputTokenPricePerMillion:  tokenPricePerMillion(l.ImageInputCost, l.ImageInputTokens),
