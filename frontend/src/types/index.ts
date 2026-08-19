@@ -1650,6 +1650,10 @@ export interface UsageLog {
   output_cost: number
   cache_creation_cost: number
   cache_read_cost: number
+  input_token_price_per_million?: number | null
+  output_token_price_per_million?: number | null
+  image_input_token_price_per_million?: number | null
+  image_output_token_price_per_million?: number | null
   total_cost: number
   actual_cost: number
   rate_multiplier: number
