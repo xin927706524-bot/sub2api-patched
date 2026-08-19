@@ -84,9 +84,9 @@ jobs:
 
           echo "already_adapted=false" >> "$GITHUB_OUTPUT"
           echo "target_tag=${TARGET_TAG}" >> "$GITHUB_OUTPUT"
-          echo "base_tag=$BASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "base_ref=origin/${{ github.event.repository.default_branch }}" >> "$GITHUB_OUTPUT"
           echo "Official target: $TARGET_TAG"
-          echo "Patched baseline: $BASE_TAG"
+          echo "Patched baseline: origin/${{ github.event.repository.default_branch }}"
 
       - name: Stop when already adapted
         if: steps.target.outputs.already_adapted == 'true'
@@ -104,7 +104,7 @@ jobs:
         if: steps.target.outputs.already_adapted != 'true'
         run: |
           set -euo pipefail
-          git merge --no-ff --no-commit "${{ steps.target.outputs.base_tag }}"
+          git merge --no-ff --no-commit "${{ steps.target.outputs.base_ref }}"
           echo "${TARGET_TAG#v}" > backend/cmd/server/VERSION
 
       - name: Setup pnpm
