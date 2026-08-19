@@ -28,6 +28,10 @@ const (
 	FieldDescription = "description"
 	// FieldRateMultiplier holds the string denoting the rate_multiplier field in the database.
 	FieldRateMultiplier = "rate_multiplier"
+	// FieldDisplayRateMultiplier holds the string denoting the display_rate_multiplier field in the database.
+	FieldDisplayRateMultiplier = "display_rate_multiplier"
+	// FieldDisplayTokenMultiplier holds the string denoting the display_token_multiplier field in the database.
+	FieldDisplayTokenMultiplier = "display_token_multiplier"
 	// FieldPeakRateEnabled holds the string denoting the peak_rate_enabled field in the database.
 	FieldPeakRateEnabled = "peak_rate_enabled"
 	// FieldPeakStart holds the string denoting the peak_start field in the database.
@@ -221,6 +225,8 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldRateMultiplier,
+	FieldDisplayRateMultiplier,
+	FieldDisplayTokenMultiplier,
 	FieldPeakRateEnabled,
 	FieldPeakStart,
 	FieldPeakEnd,
@@ -450,6 +456,16 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByRateMultiplier orders the results by the rate_multiplier field.
 func ByRateMultiplier(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRateMultiplier, opts...).ToFunc()
+}
+
+// ByDisplayRateMultiplier orders the results by the display_rate_multiplier field.
+func ByDisplayRateMultiplier(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDisplayRateMultiplier, opts...).ToFunc()
+}
+
+// ByDisplayTokenMultiplier orders the results by the display_token_multiplier field.
+func ByDisplayTokenMultiplier(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDisplayTokenMultiplier, opts...).ToFunc()
 }
 
 // ByPeakRateEnabled orders the results by the peak_rate_enabled field.

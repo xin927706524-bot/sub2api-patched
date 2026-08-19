@@ -213,6 +213,8 @@ type CreateGroupInput struct {
 	Description               string
 	Platform                  string
 	RateMultiplier            float64
+	DisplayRateMultiplier     *float64
+	DisplayTokenMultiplier    *float64
 	IsExclusive               bool
 	SubscriptionType          string   // standard/subscription
 	DailyLimitUSD             *float64 // 日限额 (USD)
@@ -287,6 +289,10 @@ type UpdateGroupInput struct {
 	Description               *string
 	Platform                  string
 	RateMultiplier            *float64 // 使用指针以支持设置为0
+	DisplayRateMultiplier     *float64
+	DisplayRateMultiplierSet  bool // true 表示请求显式设置或清空展示倍率
+	DisplayTokenMultiplier    *float64
+	DisplayTokenMultiplierSet bool // true 表示请求显式设置或清空 Token 展示倍率
 	IsExclusive               *bool
 	Status                    string
 	SubscriptionType          string   // standard/subscription

@@ -614,6 +614,34 @@
           <p class="input-hint">{{ t("admin.groups.rateMultiplierHint") }}</p>
         </div>
         <div>
+          <label class="input-label">{{
+            t("admin.groups.form.displayRateMultiplier")
+          }}</label>
+          <input
+            v-model.number="createForm.display_rate_multiplier"
+            type="number"
+            step="0.001"
+            min="0.001"
+            class="input"
+            :placeholder="String(createForm.rate_multiplier || 1)"
+          />
+          <p class="input-hint">{{ t("admin.groups.form.displayRateMultiplierHint") }}</p>
+        </div>
+        <div>
+          <label class="input-label">{{
+            t("admin.groups.form.displayTokenMultiplier")
+          }}</label>
+          <input
+            v-model.number="createForm.display_token_multiplier"
+            type="number"
+            step="0.001"
+            min="0.001"
+            class="input"
+            placeholder="1"
+          />
+          <p class="input-hint">{{ t("admin.groups.form.displayTokenMultiplierHint") }}</p>
+        </div>
+        <div>
           <label class="input-label">{{ t("admin.groups.form.rpmLimit") }}</label>
           <input
             v-model.number="createForm.rpm_limit"
@@ -2336,6 +2364,34 @@
             class="input"
             data-tour="group-form-multiplier"
           />
+        </div>
+        <div>
+          <label class="input-label">{{
+            t("admin.groups.form.displayRateMultiplier")
+          }}</label>
+          <input
+            v-model.number="editForm.display_rate_multiplier"
+            type="number"
+            step="0.001"
+            min="0.001"
+            class="input"
+            :placeholder="String(editForm.rate_multiplier || 1)"
+          />
+          <p class="input-hint">{{ t("admin.groups.form.displayRateMultiplierHint") }}</p>
+        </div>
+        <div>
+          <label class="input-label">{{
+            t("admin.groups.form.displayTokenMultiplier")
+          }}</label>
+          <input
+            v-model.number="editForm.display_token_multiplier"
+            type="number"
+            step="0.001"
+            min="0.001"
+            class="input"
+            placeholder="1"
+          />
+          <p class="input-hint">{{ t("admin.groups.form.displayTokenMultiplierHint") }}</p>
         </div>
         <div>
           <label class="input-label">{{ t("admin.groups.form.rpmLimit") }}</label>
@@ -5044,6 +5100,8 @@ const createForm = reactive({
   description: "",
   platform: "anthropic" as GroupPlatform,
   rate_multiplier: 1.0,
+  display_rate_multiplier: null as number | null,
+  display_token_multiplier: null as number | null,
   is_exclusive: false,
   subscription_type: "standard" as SubscriptionType,
   daily_limit_usd: null as number | null,
@@ -5404,6 +5462,8 @@ const editForm = reactive({
   description: "",
   platform: "anthropic" as GroupPlatform,
   rate_multiplier: 1.0,
+  display_rate_multiplier: null as number | null,
+  display_token_multiplier: null as number | null,
   is_exclusive: false,
   status: "active" as "active" | "inactive",
   subscription_type: "standard" as SubscriptionType,
@@ -5864,6 +5924,8 @@ const closeCreateModal = () => {
   createForm.description = "";
   createForm.platform = "anthropic";
   createForm.rate_multiplier = 1.0;
+  createForm.display_rate_multiplier = null;
+  createForm.display_token_multiplier = null;
   createForm.is_exclusive = false;
   createForm.subscription_type = "standard";
   createForm.daily_limit_usd = null;
@@ -6038,6 +6100,12 @@ const handleCreateGroup = async () => {
     requestData.daily_limit_usd = emptyToNull(requestData.daily_limit_usd);
     requestData.weekly_limit_usd = emptyToNull(requestData.weekly_limit_usd);
     requestData.monthly_limit_usd = emptyToNull(requestData.monthly_limit_usd);
+    requestData.display_rate_multiplier = emptyToNull(
+      requestData.display_rate_multiplier,
+    );
+    requestData.display_token_multiplier = emptyToNull(
+      requestData.display_token_multiplier,
+    );
     requestData.image_rate_multiplier = normalizeRateMultiplier(
       requestData.image_rate_multiplier,
     );
@@ -6105,6 +6173,8 @@ const handleEdit = async (group: AdminGroup) => {
   editForm.description = group.description || "";
   editForm.platform = group.platform;
   editForm.rate_multiplier = group.rate_multiplier;
+  editForm.display_rate_multiplier = group.display_rate_multiplier ?? null;
+  editForm.display_token_multiplier = group.display_token_multiplier ?? null;
   editForm.is_exclusive = group.is_exclusive;
   editForm.status = group.status;
   editForm.subscription_type = group.subscription_type || "standard";
@@ -6311,6 +6381,12 @@ const handleUpdateGroup = async () => {
     payload.daily_limit_usd = emptyToNull(payload.daily_limit_usd);
     payload.weekly_limit_usd = emptyToNull(payload.weekly_limit_usd);
     payload.monthly_limit_usd = emptyToNull(payload.monthly_limit_usd);
+    payload.display_rate_multiplier = emptyToNull(
+      payload.display_rate_multiplier,
+    );
+    payload.display_token_multiplier = emptyToNull(
+      payload.display_token_multiplier,
+    );
     payload.image_rate_multiplier = normalizeRateMultiplier(
       payload.image_rate_multiplier,
     );

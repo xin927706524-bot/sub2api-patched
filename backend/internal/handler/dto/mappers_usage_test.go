@@ -28,6 +28,44 @@ func TestUsageLogFromService_IncludesOpenAIWSMode(t *testing.T) {
 	require.False(t, UsageLogFromServiceAdmin(httpLog).OpenAIWSMode)
 }
 
+func TestUsageLogFromService_AppliesDisplayTokenMultiplierOnlyForUser(t *testing.T) {
+	t.Parallel()
+
+	multiplier := 1.2
+	log := &service.UsageLog{
+		InputTokens:           1000,
+		OutputTokens:          101,
+		CacheCreationTokens:   50,
+		CacheReadTokens:       25,
+		CacheCreation5mTokens: 40,
+		CacheCreation1hTokens: 10,
+		ImageInputTokens:      20,
+		ImageOutputTokens:     30,
+		TotalCost:             0.25,
+		ActualCost:            0.20,
+		Group:                 &service.Group{DisplayTokenMultiplier: &multiplier},
+	}
+
+	userDTO := UsageLogFromService(log)
+	adminDTO := UsageLogFromServiceAdmin(log)
+
+	require.Equal(t, 1200, userDTO.InputTokens)
+	require.Equal(t, 121, userDTO.OutputTokens)
+	require.Equal(t, 60, userDTO.CacheCreationTokens)
+	require.Equal(t, 30, userDTO.CacheReadTokens)
+	require.Equal(t, 48, userDTO.CacheCreation5mTokens)
+	require.Equal(t, 12, userDTO.CacheCreation1hTokens)
+	require.Equal(t, 24, userDTO.ImageInputTokens)
+	require.Equal(t, 36, userDTO.ImageOutputTokens)
+	require.Equal(t, 0.25, userDTO.TotalCost)
+	require.Equal(t, 0.20, userDTO.ActualCost)
+
+	require.Equal(t, 1000, adminDTO.InputTokens)
+	require.Equal(t, 101, adminDTO.OutputTokens)
+	require.Equal(t, 50, adminDTO.CacheCreationTokens)
+	require.Equal(t, 25, adminDTO.CacheReadTokens)
+}
+
 func TestUsageLogFromService_PrefersRequestTypeForLegacyFields(t *testing.T) {
 	t.Parallel()
 

@@ -22088,6 +22088,10 @@ type GroupMutation struct {
 	description                             *string
 	rate_multiplier                         *float64
 	addrate_multiplier                      *float64
+	display_rate_multiplier                 *float64
+	adddisplay_rate_multiplier              *float64
+	display_token_multiplier                *float64
+	adddisplay_token_multiplier             *float64
 	peak_rate_enabled                       *bool
 	peak_start                              *string
 	peak_end                                *string
@@ -22555,6 +22559,146 @@ func (m *GroupMutation) AddedRateMultiplier() (r float64, exists bool) {
 func (m *GroupMutation) ResetRateMultiplier() {
 	m.rate_multiplier = nil
 	m.addrate_multiplier = nil
+}
+
+// SetDisplayRateMultiplier sets the "display_rate_multiplier" field.
+func (m *GroupMutation) SetDisplayRateMultiplier(f float64) {
+	m.display_rate_multiplier = &f
+	m.adddisplay_rate_multiplier = nil
+}
+
+// DisplayRateMultiplier returns the value of the "display_rate_multiplier" field in the mutation.
+func (m *GroupMutation) DisplayRateMultiplier() (r float64, exists bool) {
+	v := m.display_rate_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayRateMultiplier returns the old "display_rate_multiplier" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldDisplayRateMultiplier(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayRateMultiplier is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayRateMultiplier requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayRateMultiplier: %w", err)
+	}
+	return oldValue.DisplayRateMultiplier, nil
+}
+
+// AddDisplayRateMultiplier adds f to the "display_rate_multiplier" field.
+func (m *GroupMutation) AddDisplayRateMultiplier(f float64) {
+	if m.adddisplay_rate_multiplier != nil {
+		*m.adddisplay_rate_multiplier += f
+	} else {
+		m.adddisplay_rate_multiplier = &f
+	}
+}
+
+// AddedDisplayRateMultiplier returns the value that was added to the "display_rate_multiplier" field in this mutation.
+func (m *GroupMutation) AddedDisplayRateMultiplier() (r float64, exists bool) {
+	v := m.adddisplay_rate_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearDisplayRateMultiplier clears the value of the "display_rate_multiplier" field.
+func (m *GroupMutation) ClearDisplayRateMultiplier() {
+	m.display_rate_multiplier = nil
+	m.adddisplay_rate_multiplier = nil
+	m.clearedFields[group.FieldDisplayRateMultiplier] = struct{}{}
+}
+
+// DisplayRateMultiplierCleared returns if the "display_rate_multiplier" field was cleared in this mutation.
+func (m *GroupMutation) DisplayRateMultiplierCleared() bool {
+	_, ok := m.clearedFields[group.FieldDisplayRateMultiplier]
+	return ok
+}
+
+// ResetDisplayRateMultiplier resets all changes to the "display_rate_multiplier" field.
+func (m *GroupMutation) ResetDisplayRateMultiplier() {
+	m.display_rate_multiplier = nil
+	m.adddisplay_rate_multiplier = nil
+	delete(m.clearedFields, group.FieldDisplayRateMultiplier)
+}
+
+// SetDisplayTokenMultiplier sets the "display_token_multiplier" field.
+func (m *GroupMutation) SetDisplayTokenMultiplier(f float64) {
+	m.display_token_multiplier = &f
+	m.adddisplay_token_multiplier = nil
+}
+
+// DisplayTokenMultiplier returns the value of the "display_token_multiplier" field in the mutation.
+func (m *GroupMutation) DisplayTokenMultiplier() (r float64, exists bool) {
+	v := m.display_token_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayTokenMultiplier returns the old "display_token_multiplier" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldDisplayTokenMultiplier(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayTokenMultiplier is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayTokenMultiplier requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayTokenMultiplier: %w", err)
+	}
+	return oldValue.DisplayTokenMultiplier, nil
+}
+
+// AddDisplayTokenMultiplier adds f to the "display_token_multiplier" field.
+func (m *GroupMutation) AddDisplayTokenMultiplier(f float64) {
+	if m.adddisplay_token_multiplier != nil {
+		*m.adddisplay_token_multiplier += f
+	} else {
+		m.adddisplay_token_multiplier = &f
+	}
+}
+
+// AddedDisplayTokenMultiplier returns the value that was added to the "display_token_multiplier" field in this mutation.
+func (m *GroupMutation) AddedDisplayTokenMultiplier() (r float64, exists bool) {
+	v := m.adddisplay_token_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearDisplayTokenMultiplier clears the value of the "display_token_multiplier" field.
+func (m *GroupMutation) ClearDisplayTokenMultiplier() {
+	m.display_token_multiplier = nil
+	m.adddisplay_token_multiplier = nil
+	m.clearedFields[group.FieldDisplayTokenMultiplier] = struct{}{}
+}
+
+// DisplayTokenMultiplierCleared returns if the "display_token_multiplier" field was cleared in this mutation.
+func (m *GroupMutation) DisplayTokenMultiplierCleared() bool {
+	_, ok := m.clearedFields[group.FieldDisplayTokenMultiplier]
+	return ok
+}
+
+// ResetDisplayTokenMultiplier resets all changes to the "display_token_multiplier" field.
+func (m *GroupMutation) ResetDisplayTokenMultiplier() {
+	m.display_token_multiplier = nil
+	m.adddisplay_token_multiplier = nil
+	delete(m.clearedFields, group.FieldDisplayTokenMultiplier)
 }
 
 // SetPeakRateEnabled sets the "peak_rate_enabled" field.
@@ -25773,7 +25917,7 @@ func (m *GroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMutation) Fields() []string {
-	fields := make([]string, 0, 62)
+	fields := make([]string, 0, 64)
 	if m.created_at != nil {
 		fields = append(fields, group.FieldCreatedAt)
 	}
@@ -25791,6 +25935,12 @@ func (m *GroupMutation) Fields() []string {
 	}
 	if m.rate_multiplier != nil {
 		fields = append(fields, group.FieldRateMultiplier)
+	}
+	if m.display_rate_multiplier != nil {
+		fields = append(fields, group.FieldDisplayRateMultiplier)
+	}
+	if m.display_token_multiplier != nil {
+		fields = append(fields, group.FieldDisplayTokenMultiplier)
 	}
 	if m.peak_rate_enabled != nil {
 		fields = append(fields, group.FieldPeakRateEnabled)
@@ -25980,6 +26130,10 @@ func (m *GroupMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case group.FieldRateMultiplier:
 		return m.RateMultiplier()
+	case group.FieldDisplayRateMultiplier:
+		return m.DisplayRateMultiplier()
+	case group.FieldDisplayTokenMultiplier:
+		return m.DisplayTokenMultiplier()
 	case group.FieldPeakRateEnabled:
 		return m.PeakRateEnabled()
 	case group.FieldPeakStart:
@@ -26113,6 +26267,10 @@ func (m *GroupMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldDescription(ctx)
 	case group.FieldRateMultiplier:
 		return m.OldRateMultiplier(ctx)
+	case group.FieldDisplayRateMultiplier:
+		return m.OldDisplayRateMultiplier(ctx)
+	case group.FieldDisplayTokenMultiplier:
+		return m.OldDisplayTokenMultiplier(ctx)
 	case group.FieldPeakRateEnabled:
 		return m.OldPeakRateEnabled(ctx)
 	case group.FieldPeakStart:
@@ -26275,6 +26433,20 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRateMultiplier(v)
+		return nil
+	case group.FieldDisplayRateMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayRateMultiplier(v)
+		return nil
+	case group.FieldDisplayTokenMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayTokenMultiplier(v)
 		return nil
 	case group.FieldPeakRateEnabled:
 		v, ok := value.(bool)
@@ -26679,6 +26851,12 @@ func (m *GroupMutation) AddedFields() []string {
 	if m.addrate_multiplier != nil {
 		fields = append(fields, group.FieldRateMultiplier)
 	}
+	if m.adddisplay_rate_multiplier != nil {
+		fields = append(fields, group.FieldDisplayRateMultiplier)
+	}
+	if m.adddisplay_token_multiplier != nil {
+		fields = append(fields, group.FieldDisplayTokenMultiplier)
+	}
 	if m.addpeak_rate_multiplier != nil {
 		fields = append(fields, group.FieldPeakRateMultiplier)
 	}
@@ -26767,6 +26945,10 @@ func (m *GroupMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case group.FieldRateMultiplier:
 		return m.AddedRateMultiplier()
+	case group.FieldDisplayRateMultiplier:
+		return m.AddedDisplayRateMultiplier()
+	case group.FieldDisplayTokenMultiplier:
+		return m.AddedDisplayTokenMultiplier()
 	case group.FieldPeakRateMultiplier:
 		return m.AddedPeakRateMultiplier()
 	case group.FieldDailyLimitUsd:
@@ -26834,6 +27016,20 @@ func (m *GroupMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddRateMultiplier(v)
+		return nil
+	case group.FieldDisplayRateMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDisplayRateMultiplier(v)
+		return nil
+	case group.FieldDisplayTokenMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDisplayTokenMultiplier(v)
 		return nil
 	case group.FieldPeakRateMultiplier:
 		v, ok := value.(float64)
@@ -27031,6 +27227,12 @@ func (m *GroupMutation) ClearedFields() []string {
 	if m.FieldCleared(group.FieldDescription) {
 		fields = append(fields, group.FieldDescription)
 	}
+	if m.FieldCleared(group.FieldDisplayRateMultiplier) {
+		fields = append(fields, group.FieldDisplayRateMultiplier)
+	}
+	if m.FieldCleared(group.FieldDisplayTokenMultiplier) {
+		fields = append(fields, group.FieldDisplayTokenMultiplier)
+	}
 	if m.FieldCleared(group.FieldDuplicateOperationID) {
 		fields = append(fields, group.FieldDuplicateOperationID)
 	}
@@ -27110,6 +27312,12 @@ func (m *GroupMutation) ClearField(name string) error {
 		return nil
 	case group.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case group.FieldDisplayRateMultiplier:
+		m.ClearDisplayRateMultiplier()
+		return nil
+	case group.FieldDisplayTokenMultiplier:
+		m.ClearDisplayTokenMultiplier()
 		return nil
 	case group.FieldDuplicateOperationID:
 		m.ClearDuplicateOperationID()
@@ -27196,6 +27404,12 @@ func (m *GroupMutation) ResetField(name string) error {
 		return nil
 	case group.FieldRateMultiplier:
 		m.ResetRateMultiplier()
+		return nil
+	case group.FieldDisplayRateMultiplier:
+		m.ResetDisplayRateMultiplier()
+		return nil
+	case group.FieldDisplayTokenMultiplier:
+		m.ResetDisplayTokenMultiplier()
 		return nil
 	case group.FieldPeakRateEnabled:
 		m.ResetPeakRateEnabled()

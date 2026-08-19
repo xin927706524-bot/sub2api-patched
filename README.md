@@ -18,6 +18,12 @@ English | [中文](README_CN.md) | [日本語](README_JA.md)
 
 </div>
 
+## Patched distribution
+
+This fork keeps the upstream Sub2API code and adds display-only group rate and
+token multipliers. See [PATCHED.md](PATCHED.md) for the update channel and
+automatic upstream adaptation details.
+
 ## ⚠️ Important Notice
 
 Please read the following carefully before using this project:

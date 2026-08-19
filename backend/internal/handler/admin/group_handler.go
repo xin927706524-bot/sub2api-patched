@@ -85,6 +85,29 @@ func (f optionalLimitField) ToServiceInput() *float64 {
 	return &zero
 }
 
+type optionalNullableFloatField struct {
+	set   bool
+	value *float64
+}
+
+func (f *optionalNullableFloatField) UnmarshalJSON(data []byte) error {
+	f.set = true
+	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+		f.value = nil
+		return nil
+	}
+	var value float64
+	if err := json.Unmarshal(data, &value); err != nil {
+		return fmt.Errorf("invalid numeric value: %w", err)
+	}
+	f.value = &value
+	return nil
+}
+
+func (f optionalNullableFloatField) ToServiceInput() (*float64, bool) {
+	return f.value, f.set
+}
+
 // NewGroupHandler creates a new admin group handler
 func NewGroupHandler(adminService service.AdminService, dashboardService *service.DashboardService, groupCapacityService *service.GroupCapacityService) *GroupHandler {
 	return &GroupHandler{
@@ -100,6 +123,8 @@ type CreateGroupRequest struct {
 	Description               string                        `json:"description"`
 	Platform                  string                        `json:"platform" binding:"omitempty,oneof=anthropic openai gemini antigravity grok kimi zhipu deepseek composite"`
 	RateMultiplier            float64                       `json:"rate_multiplier"`
+	DisplayRateMultiplier     *float64                      `json:"display_rate_multiplier"`
+	DisplayTokenMultiplier    *float64                      `json:"display_token_multiplier"`
 	IsExclusive               bool                          `json:"is_exclusive"`
 	SubscriptionType          string                        `json:"subscription_type" binding:"omitempty,oneof=standard subscription"`
 	DailyLimitUSD             optionalLimitField            `json:"daily_limit_usd"`
@@ -168,6 +193,8 @@ type UpdateGroupRequest struct {
 	Description               *string                        `json:"description"`
 	Platform                  string                         `json:"platform" binding:"omitempty,oneof=anthropic openai gemini antigravity grok kimi zhipu deepseek composite"`
 	RateMultiplier            *float64                       `json:"rate_multiplier"`
+	DisplayRateMultiplier     optionalNullableFloatField     `json:"display_rate_multiplier"`
+	DisplayTokenMultiplier    optionalNullableFloatField     `json:"display_token_multiplier"`
 	IsExclusive               *bool                          `json:"is_exclusive"`
 	Status                    string                         `json:"status" binding:"omitempty,oneof=active inactive"`
 	SubscriptionType          string                         `json:"subscription_type" binding:"omitempty,oneof=standard subscription"`
@@ -507,6 +534,8 @@ func (h *GroupHandler) Create(c *gin.Context) {
 		Description:                     req.Description,
 		Platform:                        req.Platform,
 		RateMultiplier:                  req.RateMultiplier,
+		DisplayRateMultiplier:           req.DisplayRateMultiplier,
+		DisplayTokenMultiplier:          req.DisplayTokenMultiplier,
 		IsExclusive:                     req.IsExclusive,
 		SubscriptionType:                req.SubscriptionType,
 		DailyLimitUSD:                   req.DailyLimitUSD.ToServiceInput(),
@@ -630,11 +659,17 @@ func (h *GroupHandler) Update(c *gin.Context) {
 		return
 	}
 
+	displayRateMultiplier, displayRateMultiplierSet := req.DisplayRateMultiplier.ToServiceInput()
+	displayTokenMultiplier, displayTokenMultiplierSet := req.DisplayTokenMultiplier.ToServiceInput()
 	group, err := h.adminService.UpdateGroup(c.Request.Context(), groupID, &service.UpdateGroupInput{
 		Name:                            req.Name,
 		Description:                     req.Description,
 		Platform:                        req.Platform,
 		RateMultiplier:                  req.RateMultiplier,
+		DisplayRateMultiplier:           displayRateMultiplier,
+		DisplayRateMultiplierSet:        displayRateMultiplierSet,
+		DisplayTokenMultiplier:          displayTokenMultiplier,
+		DisplayTokenMultiplierSet:       displayTokenMultiplierSet,
 		IsExclusive:                     req.IsExclusive,
 		Status:                          req.Status,
 		SubscriptionType:                req.SubscriptionType,

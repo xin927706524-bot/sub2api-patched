@@ -107,10 +107,14 @@ func (s *PaymentConfigService) GetGroupInfoMap(ctx context.Context, plans []*dbe
 	}
 	m := make(map[int64]PlanGroupInfo, len(groups))
 	for _, g := range groups {
+		rateMultiplier := g.RateMultiplier
+		if g.DisplayRateMultiplier != nil {
+			rateMultiplier = *g.DisplayRateMultiplier
+		}
 		m[int64(g.ID)] = PlanGroupInfo{
 			Platform:           g.Platform,
 			Name:               g.Name,
-			RateMultiplier:     g.RateMultiplier,
+			RateMultiplier:     rateMultiplier,
 			PeakRateEnabled:    g.PeakRateEnabled,
 			PeakStart:          g.PeakStart,
 			PeakEnd:            g.PeakEnd,

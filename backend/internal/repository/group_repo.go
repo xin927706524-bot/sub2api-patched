@@ -66,6 +66,8 @@ func createGroupRecord(ctx context.Context, client *dbent.Client, groupIn *servi
 		SetDescription(groupIn.Description).
 		SetPlatform(groupIn.Platform).
 		SetRateMultiplier(groupIn.RateMultiplier).
+		SetNillableDisplayRateMultiplier(groupIn.DisplayRateMultiplier).
+		SetNillableDisplayTokenMultiplier(groupIn.DisplayTokenMultiplier).
 		SetSortOrder(groupIn.SortOrder).
 		SetIsExclusive(groupIn.IsExclusive).
 		SetStatus(groupIn.Status).
@@ -294,6 +296,17 @@ func (r *groupRepository) Update(ctx context.Context, groupIn *service.Group) er
 		SetProfitControlEnabled(groupIn.ProfitControlEnabled).
 		SetProfitMinMargin(groupIn.ProfitMinMargin).
 		SetProfitSafetyBuffer(groupIn.ProfitSafetyBuffer)
+
+	if groupIn.DisplayRateMultiplier != nil {
+		builder = builder.SetDisplayRateMultiplier(*groupIn.DisplayRateMultiplier)
+	} else {
+		builder = builder.ClearDisplayRateMultiplier()
+	}
+	if groupIn.DisplayTokenMultiplier != nil {
+		builder = builder.SetDisplayTokenMultiplier(*groupIn.DisplayTokenMultiplier)
+	} else {
+		builder = builder.ClearDisplayTokenMultiplier()
+	}
 
 	// 显式处理可空字段：nil 需要 clear，非 nil 需要 set。
 	if groupIn.DailyLimitUSD != nil {

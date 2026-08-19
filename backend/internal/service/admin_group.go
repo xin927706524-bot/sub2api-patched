@@ -299,6 +299,12 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 	if input.RateMultiplier <= 0 {
 		return nil, errors.New("rate_multiplier must be > 0")
 	}
+	if input.DisplayRateMultiplier != nil && *input.DisplayRateMultiplier <= 0 {
+		return nil, errors.New("display_rate_multiplier must be > 0")
+	}
+	if input.DisplayTokenMultiplier != nil && *input.DisplayTokenMultiplier <= 0 {
+		return nil, errors.New("display_token_multiplier must be > 0")
+	}
 
 	platform := NormalizeGroupPlatform(input.Platform)
 	modelPricing, err := normalizeGroupModelPricing(platform, input.ModelPricing)
@@ -457,6 +463,8 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		Description:                     input.Description,
 		Platform:                        platform,
 		RateMultiplier:                  input.RateMultiplier,
+		DisplayRateMultiplier:           cloneGroupValuePointer(input.DisplayRateMultiplier),
+		DisplayTokenMultiplier:          cloneGroupValuePointer(input.DisplayTokenMultiplier),
 		IsExclusive:                     input.IsExclusive,
 		Status:                          StatusActive,
 		SubscriptionType:                subscriptionType,
@@ -658,6 +666,18 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 			return nil, errors.New("rate_multiplier must be > 0")
 		}
 		group.RateMultiplier = *input.RateMultiplier
+	}
+	if input.DisplayRateMultiplierSet {
+		if input.DisplayRateMultiplier != nil && *input.DisplayRateMultiplier <= 0 {
+			return nil, errors.New("display_rate_multiplier must be > 0")
+		}
+		group.DisplayRateMultiplier = cloneGroupValuePointer(input.DisplayRateMultiplier)
+	}
+	if input.DisplayTokenMultiplierSet {
+		if input.DisplayTokenMultiplier != nil && *input.DisplayTokenMultiplier <= 0 {
+			return nil, errors.New("display_token_multiplier must be > 0")
+		}
+		group.DisplayTokenMultiplier = cloneGroupValuePointer(input.DisplayTokenMultiplier)
 	}
 	if input.IsExclusive != nil {
 		group.IsExclusive = *input.IsExclusive

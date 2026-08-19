@@ -353,6 +353,19 @@ func (h *APIKeyHandler) GetUserGroupRates(c *gin.Context) {
 		response.ErrorFrom(c, err)
 		return
 	}
+	if rates == nil {
+		rates = make(map[int64]float64)
+	}
+	groups, groupErr := h.apiKeyService.GetAvailableGroups(c.Request.Context(), subject.UserID)
+	if groupErr != nil {
+		response.ErrorFrom(c, groupErr)
+		return
+	}
+	for i := range groups {
+		if groups[i].DisplayRateMultiplier != nil {
+			rates[groups[i].ID] = groups[i].PublicRateMultiplier()
+		}
+	}
 
 	response.Success(c, rates)
 }

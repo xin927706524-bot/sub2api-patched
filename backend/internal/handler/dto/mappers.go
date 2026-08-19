@@ -2,6 +2,7 @@
 package dto
 
 import (
+	"math"
 	"strconv"
 	"time"
 
@@ -146,6 +147,8 @@ func GroupFromServiceAdmin(g *service.Group) *AdminGroup {
 	}
 	out := &AdminGroup{
 		Group:                       groupFromServiceBase(g),
+		DisplayRateMultiplier:       g.DisplayRateMultiplier,
+		DisplayTokenMultiplier:      g.DisplayTokenMultiplier,
 		ProfitControlEnabled:        g.ProfitControlEnabled,
 		ProfitMinMargin:             g.ProfitMinMargin,
 		ProfitSafetyBuffer:          g.ProfitSafetyBuffer,
@@ -162,6 +165,9 @@ func GroupFromServiceAdmin(g *service.Group) *AdminGroup {
 		RateLimitedAccountCount:     g.RateLimitedAccountCount,
 		SortOrder:                   g.SortOrder,
 	}
+	// The shared base mapper is user-facing. Admin responses keep the real
+	// billing multiplier and expose the optional display override separately.
+	out.Group.RateMultiplier = g.RateMultiplier
 	if len(g.AccountGroups) > 0 {
 		out.AccountGroups = make([]AccountGroup, 0, len(g.AccountGroups))
 		for i := range g.AccountGroups {
@@ -173,7 +179,7 @@ func GroupFromServiceAdmin(g *service.Group) *AdminGroup {
 }
 
 func groupFromServiceBase(g *service.Group) Group {
-	return Group{
+	out := Group{
 		ID:                              g.ID,
 		Name:                            g.Name,
 		Description:                     g.Description,
@@ -223,6 +229,8 @@ func groupFromServiceBase(g *service.Group) Group {
 		CreatedAt:                       g.CreatedAt,
 		UpdatedAt:                       g.UpdatedAt,
 	}
+	out.RateMultiplier = g.PublicRateMultiplier()
+	return out
 }
 
 func AccountFromServiceShallow(a *service.Account) *Account {
@@ -627,13 +635,20 @@ func AccountSummaryFromService(a *service.Account) *AccountSummary {
 	}
 }
 
-func usageLogFromServiceUser(l *service.UsageLog) UsageLog {
+func usageLogFromService(l *service.UsageLog, applyDisplayTokenMultiplier bool) UsageLog {
 	// 普通用户 DTO：严禁包含管理员字段（例如 account_rate_multiplier、account、upstream_model）。
 	requestType := l.EffectiveRequestType()
 	stream, openAIWSMode := service.ApplyLegacyRequestFields(requestType, l.Stream, l.OpenAIWSMode)
 	requestedModel := l.RequestedModel
 	if requestedModel == "" {
 		requestedModel = l.Model
+	}
+	tokenMultiplier := 1.0
+	if applyDisplayTokenMultiplier {
+		tokenMultiplier = l.Group.PublicTokenMultiplier()
+	}
+	displayTokens := func(tokens int) int {
+		return int(math.Round(float64(tokens) * tokenMultiplier))
 	}
 	return UsageLog{
 		ID:                        l.ID,
@@ -647,12 +662,12 @@ func usageLogFromServiceUser(l *service.UsageLog) UsageLog {
 		InboundEndpoint:           l.InboundEndpoint,
 		GroupID:                   l.GroupID,
 		SubscriptionID:            l.SubscriptionID,
-		InputTokens:               l.InputTokens,
-		OutputTokens:              l.OutputTokens,
-		CacheCreationTokens:       l.CacheCreationTokens,
-		CacheReadTokens:           l.CacheReadTokens,
-		CacheCreation5mTokens:     l.CacheCreation5mTokens,
-		CacheCreation1hTokens:     l.CacheCreation1hTokens,
+		InputTokens:               displayTokens(l.InputTokens),
+		OutputTokens:              displayTokens(l.OutputTokens),
+		CacheCreationTokens:       displayTokens(l.CacheCreationTokens),
+		CacheReadTokens:           displayTokens(l.CacheReadTokens),
+		CacheCreation5mTokens:     displayTokens(l.CacheCreation5mTokens),
+		CacheCreation1hTokens:     displayTokens(l.CacheCreation1hTokens),
 		InputCost:                 l.InputCost,
 		OutputCost:                l.OutputCost,
 		CacheCreationCost:         l.CacheCreationCost,
@@ -671,9 +686,9 @@ func usageLogFromServiceUser(l *service.UsageLog) UsageLog {
 		ImageSize:                 l.ImageSize,
 		ImageInputSize:            l.ImageInputSize,
 		ImageOutputSize:           l.ImageOutputSize,
-		ImageInputTokens:          l.ImageInputTokens,
+		ImageInputTokens:          displayTokens(l.ImageInputTokens),
 		ImageInputCost:            l.ImageInputCost,
-		ImageOutputTokens:         l.ImageOutputTokens,
+		ImageOutputTokens:         displayTokens(l.ImageOutputTokens),
 		ImageOutputCost:           l.ImageOutputCost,
 		ImageSizeSource:           l.ImageSizeSource,
 		ImageSizeBreakdown:        l.ImageSizeBreakdown,
@@ -697,7 +712,7 @@ func UsageLogFromService(l *service.UsageLog) *UsageLog {
 	if l == nil {
 		return nil
 	}
-	u := usageLogFromServiceUser(l)
+	u := usageLogFromService(l, true)
 	return &u
 }
 
@@ -707,7 +722,7 @@ func UsageLogFromServiceAdmin(l *service.UsageLog) *AdminUsageLog {
 	if l == nil {
 		return nil
 	}
-	usageLog := usageLogFromServiceUser(l)
+	usageLog := usageLogFromService(l, false)
 	usageLog.UpstreamEndpoint = l.UpstreamEndpoint
 	return &AdminUsageLog{
 		UsageLog:              usageLog,

@@ -30,7 +30,11 @@ var (
 const (
 	updateCacheKey = "update_check_cache"
 	updateCacheTTL = 1200 // 20 minutes
-	githubRepo     = "Wei-Shaw/sub2api"
+
+	// Update notifications follow the official repository while binary
+	// installation uses the patched repository.
+	officialGithubRepo = "Wei-Shaw/sub2api"
+	patchedGithubRepo  = "xin927706524-bot/sub2api-patched"
 
 	// Security: allowed download domains for updates
 	allowedDownloadHost = "github.com"
@@ -172,7 +176,28 @@ func (s *UpdateService) PerformUpdate(ctx context.Context) error {
 		return ErrNoUpdateAvailable
 	}
 
-	return s.applyReleaseAssets(ctx, info.ReleaseInfo.Assets)
+	targetTag := "v" + info.LatestVersion
+	release, err := s.findPatchedReleaseByTag(ctx, targetTag)
+	if err != nil {
+		return err
+	}
+
+	return s.applyReleaseAssets(ctx, releaseAssets(release))
+}
+
+func (s *UpdateService) findPatchedReleaseByTag(ctx context.Context, tag string) (*GitHubRelease, error) {
+	releases, err := s.githubClient.FetchRecentReleases(ctx, patchedGithubRepo, rollbackFetchPageSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check patched release %s: %w", tag, err)
+	}
+
+	for _, release := range releases {
+		if release != nil && !release.Draft && !release.Prerelease && release.TagName == tag {
+			return release, nil
+		}
+	}
+
+	return nil, fmt.Errorf("patched release %s is not available yet; refusing to install the official release", tag)
 }
 
 // applyReleaseAssets downloads the platform archive from the given release assets,
@@ -348,22 +373,13 @@ func (s *UpdateService) RollbackToVersion(ctx context.Context, version string) e
 		return ErrRollbackVersionNotAllowed
 	}
 
-	assets := make([]Asset, len(match.Assets))
-	for i, a := range match.Assets {
-		assets[i] = Asset{
-			Name:        a.Name,
-			DownloadURL: a.BrowserDownloadURL,
-			Size:        a.Size,
-		}
-	}
-
-	return s.applyReleaseAssets(ctx, assets)
+	return s.applyReleaseAssets(ctx, releaseAssets(match))
 }
 
 // fetchRollbackCandidates fetches recent releases and keeps the newest
 // maxRollbackVersions entries strictly older than the current version.
 func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubRelease, error) {
-	releases, err := s.githubClient.FetchRecentReleases(ctx, githubRepo, rollbackFetchPageSize)
+	releases, err := s.githubClient.FetchRecentReleases(ctx, patchedGithubRepo, rollbackFetchPageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -400,21 +416,14 @@ func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubR
 }
 
 func (s *UpdateService) fetchLatestRelease(ctx context.Context) (*UpdateInfo, error) {
-	release, err := s.githubClient.FetchLatestRelease(ctx, githubRepo)
+	release, err := s.githubClient.FetchLatestRelease(ctx, officialGithubRepo)
 	if err != nil {
 		return nil, err
 	}
 
 	latestVersion := strings.TrimPrefix(release.TagName, "v")
 
-	assets := make([]Asset, len(release.Assets))
-	for i, a := range release.Assets {
-		assets[i] = Asset{
-			Name:        a.Name,
-			DownloadURL: a.BrowserDownloadURL,
-			Size:        a.Size,
-		}
-	}
+	assets := releaseAssets(release)
 
 	return &UpdateInfo{
 		CurrentVersion: s.currentVersion,
@@ -430,6 +439,22 @@ func (s *UpdateService) fetchLatestRelease(ctx context.Context) (*UpdateInfo, er
 		Cached:    false,
 		BuildType: s.buildType,
 	}, nil
+}
+
+func releaseAssets(release *GitHubRelease) []Asset {
+	if release == nil {
+		return nil
+	}
+
+	assets := make([]Asset, len(release.Assets))
+	for i, a := range release.Assets {
+		assets[i] = Asset{
+			Name:        a.Name,
+			DownloadURL: a.BrowserDownloadURL,
+			Size:        a.Size,
+		}
+	}
+	return assets
 }
 
 func (s *UpdateService) downloadFile(ctx context.Context, downloadURL, dest string) error {
