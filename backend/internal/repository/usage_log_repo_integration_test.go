@@ -491,13 +491,35 @@ func (s *UsageLogRepoSuite) TestGetByID() {
 	user := mustCreateUser(s.T(), s.client, &service.User{Email: "getbyid@test.com"})
 	apiKey := mustCreateApiKey(s.T(), s.client, &service.APIKey{UserID: user.ID, Key: "sk-getbyid", Name: "k"})
 	account := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-getbyid"})
+	displayTokenMultiplier := 1.2
+	group := mustCreateGroup(s.T(), s.client, &service.Group{
+		Name:                   "group-getbyid",
+		DisplayTokenMultiplier: &displayTokenMultiplier,
+	})
 
-	log := s.createUsageLog(user, apiKey, account, 10, 20, 0.5, time.Now())
+	log := &service.UsageLog{
+		UserID:       user.ID,
+		APIKeyID:     apiKey.ID,
+		AccountID:    account.ID,
+		RequestID:    uuid.New().String(),
+		Model:        "claude-3",
+		GroupID:      &group.ID,
+		InputTokens:  10,
+		OutputTokens: 20,
+		TotalCost:    0.5,
+		ActualCost:   0.5,
+		CreatedAt:    time.Now(),
+	}
+	_, err := s.repo.Create(s.ctx, log)
+	s.Require().NoError(err)
 
 	got, err := s.repo.GetByID(s.ctx, log.ID)
 	s.Require().NoError(err, "GetByID")
 	s.Require().Equal(log.ID, got.ID)
 	s.Require().Equal(10, got.InputTokens)
+	s.Require().NotNil(got.Group)
+	s.Require().NotNil(got.Group.DisplayTokenMultiplier)
+	s.Require().InEpsilon(1.2, *got.Group.DisplayTokenMultiplier, 0.0001)
 }
 
 func (s *UsageLogRepoSuite) TestGetByID_NotFound() {

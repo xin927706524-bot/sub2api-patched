@@ -118,6 +118,60 @@ func (_u *GroupUpdate) AddRateMultiplier(v float64) *GroupUpdate {
 	return _u
 }
 
+// SetDisplayRateMultiplier sets the "display_rate_multiplier" field.
+func (_u *GroupUpdate) SetDisplayRateMultiplier(v float64) *GroupUpdate {
+	_u.mutation.ResetDisplayRateMultiplier()
+	_u.mutation.SetDisplayRateMultiplier(v)
+	return _u
+}
+
+// SetNillableDisplayRateMultiplier sets the "display_rate_multiplier" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableDisplayRateMultiplier(v *float64) *GroupUpdate {
+	if v != nil {
+		_u.SetDisplayRateMultiplier(*v)
+	}
+	return _u
+}
+
+// AddDisplayRateMultiplier adds value to the "display_rate_multiplier" field.
+func (_u *GroupUpdate) AddDisplayRateMultiplier(v float64) *GroupUpdate {
+	_u.mutation.AddDisplayRateMultiplier(v)
+	return _u
+}
+
+// ClearDisplayRateMultiplier clears the value of the "display_rate_multiplier" field.
+func (_u *GroupUpdate) ClearDisplayRateMultiplier() *GroupUpdate {
+	_u.mutation.ClearDisplayRateMultiplier()
+	return _u
+}
+
+// SetDisplayTokenMultiplier sets the "display_token_multiplier" field.
+func (_u *GroupUpdate) SetDisplayTokenMultiplier(v float64) *GroupUpdate {
+	_u.mutation.ResetDisplayTokenMultiplier()
+	_u.mutation.SetDisplayTokenMultiplier(v)
+	return _u
+}
+
+// SetNillableDisplayTokenMultiplier sets the "display_token_multiplier" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableDisplayTokenMultiplier(v *float64) *GroupUpdate {
+	if v != nil {
+		_u.SetDisplayTokenMultiplier(*v)
+	}
+	return _u
+}
+
+// AddDisplayTokenMultiplier adds value to the "display_token_multiplier" field.
+func (_u *GroupUpdate) AddDisplayTokenMultiplier(v float64) *GroupUpdate {
+	_u.mutation.AddDisplayTokenMultiplier(v)
+	return _u
+}
+
+// ClearDisplayTokenMultiplier clears the value of the "display_token_multiplier" field.
+func (_u *GroupUpdate) ClearDisplayTokenMultiplier() *GroupUpdate {
+	_u.mutation.ClearDisplayTokenMultiplier()
+	return _u
+}
+
 // SetPeakRateEnabled sets the "peak_rate_enabled" field.
 func (_u *GroupUpdate) SetPeakRateEnabled(v bool) *GroupUpdate {
 	_u.mutation.SetPeakRateEnabled(v)
@@ -1526,6 +1580,24 @@ func (_u *GroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedRateMultiplier(); ok {
 		_spec.AddField(group.FieldRateMultiplier, field.TypeFloat64, value)
 	}
+	if value, ok := _u.mutation.DisplayRateMultiplier(); ok {
+		_spec.SetField(group.FieldDisplayRateMultiplier, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedDisplayRateMultiplier(); ok {
+		_spec.AddField(group.FieldDisplayRateMultiplier, field.TypeFloat64, value)
+	}
+	if _u.mutation.DisplayRateMultiplierCleared() {
+		_spec.ClearField(group.FieldDisplayRateMultiplier, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.DisplayTokenMultiplier(); ok {
+		_spec.SetField(group.FieldDisplayTokenMultiplier, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedDisplayTokenMultiplier(); ok {
+		_spec.AddField(group.FieldDisplayTokenMultiplier, field.TypeFloat64, value)
+	}
+	if _u.mutation.DisplayTokenMultiplierCleared() {
+		_spec.ClearField(group.FieldDisplayTokenMultiplier, field.TypeFloat64)
+	}
 	if value, ok := _u.mutation.PeakRateEnabled(); ok {
 		_spec.SetField(group.FieldPeakRateEnabled, field.TypeBool, value)
 	}
@@ -2236,6 +2308,60 @@ func (_u *GroupUpdateOne) SetNillableRateMultiplier(v *float64) *GroupUpdateOne 
 // AddRateMultiplier adds value to the "rate_multiplier" field.
 func (_u *GroupUpdateOne) AddRateMultiplier(v float64) *GroupUpdateOne {
 	_u.mutation.AddRateMultiplier(v)
+	return _u
+}
+
+// SetDisplayRateMultiplier sets the "display_rate_multiplier" field.
+func (_u *GroupUpdateOne) SetDisplayRateMultiplier(v float64) *GroupUpdateOne {
+	_u.mutation.ResetDisplayRateMultiplier()
+	_u.mutation.SetDisplayRateMultiplier(v)
+	return _u
+}
+
+// SetNillableDisplayRateMultiplier sets the "display_rate_multiplier" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableDisplayRateMultiplier(v *float64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetDisplayRateMultiplier(*v)
+	}
+	return _u
+}
+
+// AddDisplayRateMultiplier adds value to the "display_rate_multiplier" field.
+func (_u *GroupUpdateOne) AddDisplayRateMultiplier(v float64) *GroupUpdateOne {
+	_u.mutation.AddDisplayRateMultiplier(v)
+	return _u
+}
+
+// ClearDisplayRateMultiplier clears the value of the "display_rate_multiplier" field.
+func (_u *GroupUpdateOne) ClearDisplayRateMultiplier() *GroupUpdateOne {
+	_u.mutation.ClearDisplayRateMultiplier()
+	return _u
+}
+
+// SetDisplayTokenMultiplier sets the "display_token_multiplier" field.
+func (_u *GroupUpdateOne) SetDisplayTokenMultiplier(v float64) *GroupUpdateOne {
+	_u.mutation.ResetDisplayTokenMultiplier()
+	_u.mutation.SetDisplayTokenMultiplier(v)
+	return _u
+}
+
+// SetNillableDisplayTokenMultiplier sets the "display_token_multiplier" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableDisplayTokenMultiplier(v *float64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetDisplayTokenMultiplier(*v)
+	}
+	return _u
+}
+
+// AddDisplayTokenMultiplier adds value to the "display_token_multiplier" field.
+func (_u *GroupUpdateOne) AddDisplayTokenMultiplier(v float64) *GroupUpdateOne {
+	_u.mutation.AddDisplayTokenMultiplier(v)
+	return _u
+}
+
+// ClearDisplayTokenMultiplier clears the value of the "display_token_multiplier" field.
+func (_u *GroupUpdateOne) ClearDisplayTokenMultiplier() *GroupUpdateOne {
+	_u.mutation.ClearDisplayTokenMultiplier()
 	return _u
 }
 
@@ -3676,6 +3802,24 @@ func (_u *GroupUpdateOne) sqlSave(ctx context.Context) (_node *Group, err error)
 	}
 	if value, ok := _u.mutation.AddedRateMultiplier(); ok {
 		_spec.AddField(group.FieldRateMultiplier, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.DisplayRateMultiplier(); ok {
+		_spec.SetField(group.FieldDisplayRateMultiplier, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedDisplayRateMultiplier(); ok {
+		_spec.AddField(group.FieldDisplayRateMultiplier, field.TypeFloat64, value)
+	}
+	if _u.mutation.DisplayRateMultiplierCleared() {
+		_spec.ClearField(group.FieldDisplayRateMultiplier, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.DisplayTokenMultiplier(); ok {
+		_spec.SetField(group.FieldDisplayTokenMultiplier, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedDisplayTokenMultiplier(); ok {
+		_spec.AddField(group.FieldDisplayTokenMultiplier, field.TypeFloat64, value)
+	}
+	if _u.mutation.DisplayTokenMultiplierCleared() {
+		_spec.ClearField(group.FieldDisplayTokenMultiplier, field.TypeFloat64)
 	}
 	if value, ok := _u.mutation.PeakRateEnabled(); ok {
 		_spec.SetField(group.FieldPeakRateEnabled, field.TypeBool, value)

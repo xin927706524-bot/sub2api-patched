@@ -607,7 +607,9 @@ export interface Group {
 }
 
 export interface AdminGroup extends Group {
-  model_pricing: import('@/api/admin/channels').ChannelModelPricing[]
+	display_rate_multiplier: number | null
+	display_token_multiplier: number | null
+	model_pricing: import('@/api/admin/channels').ChannelModelPricing[]
   // 分组利润控制（openai/anthropic/gemini/grok/antigravity 分组可启用；margin/buffer 为小数存储）。
   // 仅管理员可见：与 rate_multiplier 相乘即可反推上游成本上限，不得下放到 Group。
   profit_control_enabled: boolean
@@ -765,6 +767,8 @@ export interface CreateGroupRequest {
   description?: string | null
   platform?: GroupPlatform
   rate_multiplier?: number
+  display_rate_multiplier?: number | null
+  display_token_multiplier?: number | null
   is_exclusive?: boolean
   subscription_type?: SubscriptionType
   daily_limit_usd?: number | null
@@ -826,6 +830,8 @@ export interface UpdateGroupRequest {
   description?: string | null
   platform?: GroupPlatform
   rate_multiplier?: number
+  display_rate_multiplier?: number | null
+  display_token_multiplier?: number | null
   is_exclusive?: boolean
   status?: 'active' | 'inactive'
   subscription_type?: SubscriptionType
@@ -1644,6 +1650,10 @@ export interface UsageLog {
   output_cost: number
   cache_creation_cost: number
   cache_read_cost: number
+  input_token_price_per_million?: number | null
+  output_token_price_per_million?: number | null
+  image_input_token_price_per_million?: number | null
+  image_output_token_price_per_million?: number | null
   total_cost: number
   actual_cost: number
   rate_multiplier: number

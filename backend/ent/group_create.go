@@ -106,6 +106,34 @@ func (_c *GroupCreate) SetNillableRateMultiplier(v *float64) *GroupCreate {
 	return _c
 }
 
+// SetDisplayRateMultiplier sets the "display_rate_multiplier" field.
+func (_c *GroupCreate) SetDisplayRateMultiplier(v float64) *GroupCreate {
+	_c.mutation.SetDisplayRateMultiplier(v)
+	return _c
+}
+
+// SetNillableDisplayRateMultiplier sets the "display_rate_multiplier" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableDisplayRateMultiplier(v *float64) *GroupCreate {
+	if v != nil {
+		_c.SetDisplayRateMultiplier(*v)
+	}
+	return _c
+}
+
+// SetDisplayTokenMultiplier sets the "display_token_multiplier" field.
+func (_c *GroupCreate) SetDisplayTokenMultiplier(v float64) *GroupCreate {
+	_c.mutation.SetDisplayTokenMultiplier(v)
+	return _c
+}
+
+// SetNillableDisplayTokenMultiplier sets the "display_token_multiplier" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableDisplayTokenMultiplier(v *float64) *GroupCreate {
+	if v != nil {
+		_c.SetDisplayTokenMultiplier(*v)
+	}
+	return _c
+}
+
 // SetPeakRateEnabled sets the "peak_rate_enabled" field.
 func (_c *GroupCreate) SetPeakRateEnabled(v bool) *GroupCreate {
 	_c.mutation.SetPeakRateEnabled(v)
@@ -1380,6 +1408,14 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 		_spec.SetField(group.FieldRateMultiplier, field.TypeFloat64, value)
 		_node.RateMultiplier = value
 	}
+	if value, ok := _c.mutation.DisplayRateMultiplier(); ok {
+		_spec.SetField(group.FieldDisplayRateMultiplier, field.TypeFloat64, value)
+		_node.DisplayRateMultiplier = &value
+	}
+	if value, ok := _c.mutation.DisplayTokenMultiplier(); ok {
+		_spec.SetField(group.FieldDisplayTokenMultiplier, field.TypeFloat64, value)
+		_node.DisplayTokenMultiplier = &value
+	}
 	if value, ok := _c.mutation.PeakRateEnabled(); ok {
 		_spec.SetField(group.FieldPeakRateEnabled, field.TypeBool, value)
 		_node.PeakRateEnabled = value
@@ -1835,6 +1871,54 @@ func (u *GroupUpsert) UpdateRateMultiplier() *GroupUpsert {
 // AddRateMultiplier adds v to the "rate_multiplier" field.
 func (u *GroupUpsert) AddRateMultiplier(v float64) *GroupUpsert {
 	u.Add(group.FieldRateMultiplier, v)
+	return u
+}
+
+// SetDisplayRateMultiplier sets the "display_rate_multiplier" field.
+func (u *GroupUpsert) SetDisplayRateMultiplier(v float64) *GroupUpsert {
+	u.Set(group.FieldDisplayRateMultiplier, v)
+	return u
+}
+
+// UpdateDisplayRateMultiplier sets the "display_rate_multiplier" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateDisplayRateMultiplier() *GroupUpsert {
+	u.SetExcluded(group.FieldDisplayRateMultiplier)
+	return u
+}
+
+// AddDisplayRateMultiplier adds v to the "display_rate_multiplier" field.
+func (u *GroupUpsert) AddDisplayRateMultiplier(v float64) *GroupUpsert {
+	u.Add(group.FieldDisplayRateMultiplier, v)
+	return u
+}
+
+// ClearDisplayRateMultiplier clears the value of the "display_rate_multiplier" field.
+func (u *GroupUpsert) ClearDisplayRateMultiplier() *GroupUpsert {
+	u.SetNull(group.FieldDisplayRateMultiplier)
+	return u
+}
+
+// SetDisplayTokenMultiplier sets the "display_token_multiplier" field.
+func (u *GroupUpsert) SetDisplayTokenMultiplier(v float64) *GroupUpsert {
+	u.Set(group.FieldDisplayTokenMultiplier, v)
+	return u
+}
+
+// UpdateDisplayTokenMultiplier sets the "display_token_multiplier" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateDisplayTokenMultiplier() *GroupUpsert {
+	u.SetExcluded(group.FieldDisplayTokenMultiplier)
+	return u
+}
+
+// AddDisplayTokenMultiplier adds v to the "display_token_multiplier" field.
+func (u *GroupUpsert) AddDisplayTokenMultiplier(v float64) *GroupUpsert {
+	u.Add(group.FieldDisplayTokenMultiplier, v)
+	return u
+}
+
+// ClearDisplayTokenMultiplier clears the value of the "display_token_multiplier" field.
+func (u *GroupUpsert) ClearDisplayTokenMultiplier() *GroupUpsert {
+	u.SetNull(group.FieldDisplayTokenMultiplier)
 	return u
 }
 
@@ -2904,6 +2988,62 @@ func (u *GroupUpsertOne) AddRateMultiplier(v float64) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdateRateMultiplier() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateRateMultiplier()
+	})
+}
+
+// SetDisplayRateMultiplier sets the "display_rate_multiplier" field.
+func (u *GroupUpsertOne) SetDisplayRateMultiplier(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDisplayRateMultiplier(v)
+	})
+}
+
+// AddDisplayRateMultiplier adds v to the "display_rate_multiplier" field.
+func (u *GroupUpsertOne) AddDisplayRateMultiplier(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDisplayRateMultiplier(v)
+	})
+}
+
+// UpdateDisplayRateMultiplier sets the "display_rate_multiplier" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateDisplayRateMultiplier() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDisplayRateMultiplier()
+	})
+}
+
+// ClearDisplayRateMultiplier clears the value of the "display_rate_multiplier" field.
+func (u *GroupUpsertOne) ClearDisplayRateMultiplier() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDisplayRateMultiplier()
+	})
+}
+
+// SetDisplayTokenMultiplier sets the "display_token_multiplier" field.
+func (u *GroupUpsertOne) SetDisplayTokenMultiplier(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDisplayTokenMultiplier(v)
+	})
+}
+
+// AddDisplayTokenMultiplier adds v to the "display_token_multiplier" field.
+func (u *GroupUpsertOne) AddDisplayTokenMultiplier(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDisplayTokenMultiplier(v)
+	})
+}
+
+// UpdateDisplayTokenMultiplier sets the "display_token_multiplier" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateDisplayTokenMultiplier() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDisplayTokenMultiplier()
+	})
+}
+
+// ClearDisplayTokenMultiplier clears the value of the "display_token_multiplier" field.
+func (u *GroupUpsertOne) ClearDisplayTokenMultiplier() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDisplayTokenMultiplier()
 	})
 }
 
@@ -4294,6 +4434,62 @@ func (u *GroupUpsertBulk) AddRateMultiplier(v float64) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdateRateMultiplier() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateRateMultiplier()
+	})
+}
+
+// SetDisplayRateMultiplier sets the "display_rate_multiplier" field.
+func (u *GroupUpsertBulk) SetDisplayRateMultiplier(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDisplayRateMultiplier(v)
+	})
+}
+
+// AddDisplayRateMultiplier adds v to the "display_rate_multiplier" field.
+func (u *GroupUpsertBulk) AddDisplayRateMultiplier(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDisplayRateMultiplier(v)
+	})
+}
+
+// UpdateDisplayRateMultiplier sets the "display_rate_multiplier" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateDisplayRateMultiplier() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDisplayRateMultiplier()
+	})
+}
+
+// ClearDisplayRateMultiplier clears the value of the "display_rate_multiplier" field.
+func (u *GroupUpsertBulk) ClearDisplayRateMultiplier() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDisplayRateMultiplier()
+	})
+}
+
+// SetDisplayTokenMultiplier sets the "display_token_multiplier" field.
+func (u *GroupUpsertBulk) SetDisplayTokenMultiplier(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDisplayTokenMultiplier(v)
+	})
+}
+
+// AddDisplayTokenMultiplier adds v to the "display_token_multiplier" field.
+func (u *GroupUpsertBulk) AddDisplayTokenMultiplier(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDisplayTokenMultiplier(v)
+	})
+}
+
+// UpdateDisplayTokenMultiplier sets the "display_token_multiplier" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateDisplayTokenMultiplier() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDisplayTokenMultiplier()
+	})
+}
+
+// ClearDisplayTokenMultiplier clears the value of the "display_token_multiplier" field.
+func (u *GroupUpsertBulk) ClearDisplayTokenMultiplier() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDisplayTokenMultiplier()
 	})
 }
 

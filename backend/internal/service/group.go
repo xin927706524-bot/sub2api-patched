@@ -21,6 +21,12 @@ type Group struct {
 	Description    string
 	Platform       string
 	RateMultiplier float64
+	// DisplayRateMultiplier 仅用于用户界面展示；nil 时跟随 RateMultiplier。
+	// 计费、调度、利润控制和账单快照不得使用此字段。
+	DisplayRateMultiplier *float64
+	// DisplayTokenMultiplier 仅用于用户用量明细展示；nil 时按 1.0 展示。
+	// 原始用量、计费、限流和管理员统计不得使用此字段。
+	DisplayTokenMultiplier *float64
 	// 高峰时段倍率：peak_rate_enabled 为 true 且当前时刻处于 [PeakStart, PeakEnd) 时，
 	// token 计费倍率额外乘以 PeakRateMultiplier。详见 PeakMultiplierAt。
 	PeakRateEnabled    bool
@@ -135,6 +141,27 @@ type Group struct {
 
 func (g *Group) IsActive() bool {
 	return g.Status == StatusActive
+}
+
+// PublicRateMultiplier returns the group multiplier shown in user-facing views.
+// It must not be used by billing or scheduling code.
+func (g *Group) PublicRateMultiplier() float64 {
+	if g != nil && g.DisplayRateMultiplier != nil {
+		return *g.DisplayRateMultiplier
+	}
+	if g == nil {
+		return 1
+	}
+	return g.RateMultiplier
+}
+
+// PublicTokenMultiplier returns the multiplier applied at the user usage DTO boundary.
+// It must not be used while recording usage, billing, rate limiting, or admin reporting.
+func (g *Group) PublicTokenMultiplier() float64 {
+	if g != nil && g.DisplayTokenMultiplier != nil && *g.DisplayTokenMultiplier > 0 {
+		return *g.DisplayTokenMultiplier
+	}
+	return 1
 }
 
 func (g *Group) IsSubscriptionType() bool {

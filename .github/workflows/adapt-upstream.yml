@@ -1,0 +1,215 @@
+name: Adapt upstream release
+
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      target_tag:
+        description: 'Official tag to adapt (for example v0.1.179); empty means latest'
+        required: false
+        type: string
+      dry_run:
+        description: 'Validate only; do not update main, tag, or release'
+        required: false
+        type: boolean
+        default: false
+
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+
+concurrency:
+  group: adapt-upstream
+  cancel-in-progress: false
+
+
+jobs:
+  adapt:
+    name: Adapt and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      TARGET_TAG: ${{ inputs.target_tag || github.event.inputs.target_tag || '' }}
+      DRY_RUN: ${{ inputs.dry_run == true || github.event.inputs.dry_run == 'true' }}
+    steps:
+      - name: Checkout patched repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+
+      - name: Configure Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Select official target
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$TARGET_TAG" ]; then
+            TARGET_TAG=$(curl -fsSL https://api.github.com/repos/Wei-Shaw/sub2api/releases/latest | jq -r '.tag_name')
+          fi
+          if ! printf '%s\n' "$TARGET_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Refusing unsupported official tag: $TARGET_TAG" >&2
+            exit 1
+          fi
+
+          git fetch --quiet origin '+refs/tags/*:refs/tags/*'
+          if git rev-parse -q --verify "refs/tags/${TARGET_TAG}" >/dev/null; then
+            echo "already_adapted=true" >> "$GITHUB_OUTPUT"
+            echo "target_tag=${TARGET_TAG}" >> "$GITHUB_OUTPUT"
+            echo "Patched ${TARGET_TAG} already exists."
+            exit 0
+          fi
+
+          BASE_TAG=$(
+            git for-each-ref refs/tags --format='%(refname:short)' \
+              | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+              | sort -V \
+              | while read -r tag; do
+                  oldest=$(printf '%s\n%s\n' "$tag" "$TARGET_TAG" | sort -V | head -1)
+                  if [ "$tag" != "$TARGET_TAG" ] && [ "$oldest" = "$tag" ]; then
+                    printf '%s\n' "$tag"
+                  fi
+                done \
+              | tail -1
+          )
+          if [ -z "$BASE_TAG" ]; then
+            echo 'No patched baseline tag is older than the official target.' >&2
+            exit 1
+          fi
+
+          echo "already_adapted=false" >> "$GITHUB_OUTPUT"
+          echo "target_tag=${TARGET_TAG}" >> "$GITHUB_OUTPUT"
+          echo "base_ref=origin/${{ github.event.repository.default_branch }}" >> "$GITHUB_OUTPUT"
+          echo "Official target: $TARGET_TAG"
+          echo "Patched baseline: origin/${{ github.event.repository.default_branch }}"
+
+      - name: Export selected target
+        if: steps.target.outputs.already_adapted != 'true'
+        run: echo "TARGET_TAG=${{ steps.target.outputs.target_tag }}" >> "$GITHUB_ENV"
+
+      - name: Stop when already adapted
+        if: steps.target.outputs.already_adapted == 'true'
+        run: echo 'No work needed.'
+
+
+      - name: Fetch official source
+        if: steps.target.outputs.already_adapted != 'true'
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/Wei-Shaw/sub2api.git
+          git fetch --no-tags upstream "refs/tags/${TARGET_TAG}:refs/tags/upstream-${TARGET_TAG}"
+          git checkout --quiet -B "adapt/${TARGET_TAG}" "refs/tags/upstream-${TARGET_TAG}"
+
+      - name: Merge patched changes
+        if: steps.target.outputs.already_adapted != 'true'
+        run: |
+          set -euo pipefail
+          git merge --no-ff --no-commit "${{ steps.target.outputs.base_ref }}"
+          echo "${TARGET_TAG#v}" > backend/cmd/server/VERSION
+
+      - name: Setup pnpm
+        if: steps.target.outputs.already_adapted != 'true'
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+
+      - name: Setup Node.js
+        if: steps.target.outputs.already_adapted != 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+
+      - name: Setup Go
+        if: steps.target.outputs.already_adapted != 'true'
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          check-latest: false
+          cache-dependency-path: backend/go.sum
+
+
+      - name: Build frontend
+        if: steps.target.outputs.already_adapted != 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build
+        working-directory: frontend
+
+
+      - name: Generate backend code
+        if: steps.target.outputs.already_adapted != 'true'
+        run: go generate ./ent
+        working-directory: backend
+
+
+      - name: Verify backend
+        if: steps.target.outputs.already_adapted != 'true'
+        run: |
+          set -euo pipefail
+          go test -tags unit ./internal/service -run 'TestUpdateServicePerformUpdate|GroupPublic(Rate|Token)Multiplier' -count=1
+          go test -tags unit ./internal/handler/dto -run 'GroupDisplayRateVisibility|AppliesDisplayTokenMultiplierOnlyForUser' -count=1
+          go test -tags unit ./internal/handler/admin -run 'UpdateGroupRequestDisplay(Rate|Token)TriState' -count=1
+          go build ./...
+        working-directory: backend
+
+
+      - name: Review resulting change
+        if: steps.target.outputs.already_adapted != 'true'
+        run: |
+          set -euo pipefail
+          git add backend/cmd/server/VERSION backend/ent backend/internal frontend/src
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: adapt patched build to ${TARGET_TAG}"
+          else
+            git commit -m "chore: adapt patched build to ${TARGET_TAG}"
+          fi
+          git show --stat --oneline HEAD
+
+      - name: Publish adaptation
+        if: steps.target.outputs.already_adapted != 'true' && env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:${{ github.event.repository.default_branch }}"
+          git tag -a "$TARGET_TAG" -m "Sub2API patched build $TARGET_TAG"
+          git push origin "$TARGET_TAG"
+          gh workflow run release.yml \
+            --ref '${{ github.event.repository.default_branch }}' \
+            -f tag="$TARGET_TAG" \
+            -f simple_release=false
+
+      - name: Record validation-only result
+        if: steps.target.outputs.already_adapted != 'true' && env.DRY_RUN == 'true'
+        run: echo "Validated $TARGET_TAG successfully; dry run kept main, tags, and releases unchanged."
+
+
+      - name: Create failure issue
+        if: failure() && steps.target.outputs.target_tag != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="Automatic adaptation failed for ${{ steps.target.outputs.target_tag }}"
+          existing=$(gh issue list --search "$title in:title" --state open --json number --jq 'length')
+          if [ "$existing" = "0" ]; then
+            gh issue create \
+              --title "$title" \
+              --body "The official release was not automatically published because validation failed. Check the workflow run and retry after fixing conflicts. No official binary was installed."
+          fi

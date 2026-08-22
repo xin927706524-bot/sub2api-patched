@@ -161,6 +161,8 @@ type Group struct {
 // 注意：普通用户接口不得返回 model_routing/account_count/account_groups 等内部信息。
 type AdminGroup struct {
 	Group
+	DisplayRateMultiplier  *float64 `json:"display_rate_multiplier"`
+	DisplayTokenMultiplier *float64 `json:"display_token_multiplier"`
 
 	// 分组利润控制（五个 token 平台分组可启用；margin/buffer 为小数存储）。
 	// 仅管理员可见：这三个字段与同响应中的 rate_multiplier 相乘即可反推出
@@ -505,14 +507,18 @@ type UsageLog struct {
 	CacheCreation5mTokens int `json:"cache_creation_5m_tokens"`
 	CacheCreation1hTokens int `json:"cache_creation_1h_tokens"`
 
-	InputCost                 float64 `json:"input_cost"`
-	OutputCost                float64 `json:"output_cost"`
-	CacheCreationCost         float64 `json:"cache_creation_cost"`
-	CacheReadCost             float64 `json:"cache_read_cost"`
-	TotalCost                 float64 `json:"total_cost"`
-	ActualCost                float64 `json:"actual_cost"`
-	RateMultiplier            float64 `json:"rate_multiplier"`
-	LongContextBillingApplied bool    `json:"long_context_billing_applied"`
+	InputCost                       float64  `json:"input_cost"`
+	OutputCost                      float64  `json:"output_cost"`
+	CacheCreationCost               float64  `json:"cache_creation_cost"`
+	CacheReadCost                   float64  `json:"cache_read_cost"`
+	InputTokenPricePerMillion       *float64 `json:"input_token_price_per_million,omitempty"`
+	OutputTokenPricePerMillion      *float64 `json:"output_token_price_per_million,omitempty"`
+	ImageInputTokenPricePerMillion  *float64 `json:"image_input_token_price_per_million,omitempty"`
+	ImageOutputTokenPricePerMillion *float64 `json:"image_output_token_price_per_million,omitempty"`
+	TotalCost                       float64  `json:"total_cost"`
+	ActualCost                      float64  `json:"actual_cost"`
+	RateMultiplier                  float64  `json:"rate_multiplier"`
+	LongContextBillingApplied       bool     `json:"long_context_billing_applied"`
 
 	BillingType  int8   `json:"billing_type"`
 	RequestType  string `json:"request_type"`

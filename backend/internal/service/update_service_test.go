@@ -5,11 +5,15 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+var errUpdateDownloadStopped = errors.New("stop after selecting download")
 
 type updateServiceCacheStub struct {
 	data string
@@ -28,21 +32,32 @@ func (s *updateServiceCacheStub) SetUpdateInfo(_ context.Context, data string, _
 }
 
 type updateServiceGitHubClientStub struct {
-	release        *GitHubRelease
-	recentReleases []*GitHubRelease
-	recentErr      error
+	latestByRepo map[string]*GitHubRelease
+	recentByRepo map[string][]*GitHubRelease
+	recentErr    error
+	downloadURLs []string
 }
 
-func (s *updateServiceGitHubClientStub) FetchLatestRelease(context.Context, string) (*GitHubRelease, error) {
-	return s.release, nil
+func (s *updateServiceGitHubClientStub) FetchLatestRelease(_ context.Context, repo string) (*GitHubRelease, error) {
+	if release, ok := s.latestByRepo[repo]; ok {
+		return release, nil
+	}
+	return nil, fmt.Errorf("unexpected latest release repository: %s", repo)
 }
 
-func (s *updateServiceGitHubClientStub) FetchRecentReleases(context.Context, string, int) ([]*GitHubRelease, error) {
-	return s.recentReleases, s.recentErr
+func (s *updateServiceGitHubClientStub) FetchRecentReleases(_ context.Context, repo string, _ int) ([]*GitHubRelease, error) {
+	if s.recentErr != nil {
+		return nil, s.recentErr
+	}
+	if releases, ok := s.recentByRepo[repo]; ok {
+		return releases, nil
+	}
+	return nil, fmt.Errorf("unexpected recent release repository: %s", repo)
 }
 
-func (s *updateServiceGitHubClientStub) DownloadFile(context.Context, string, string, int64) error {
-	panic("DownloadFile should not be called when no update is available")
+func (s *updateServiceGitHubClientStub) DownloadFile(_ context.Context, rawURL, _ string, _ int64) error {
+	s.downloadURLs = append(s.downloadURLs, rawURL)
+	return errUpdateDownloadStopped
 }
 
 func (s *updateServiceGitHubClientStub) FetchChecksumFile(context.Context, string) ([]byte, error) {
@@ -53,9 +68,11 @@ func TestUpdateServicePerformUpdateNoUpdateReturnsSentinel(t *testing.T) {
 	svc := NewUpdateService(
 		&updateServiceCacheStub{},
 		&updateServiceGitHubClientStub{
-			release: &GitHubRelease{
-				TagName: "v0.1.132",
-				Name:    "v0.1.132",
+			latestByRepo: map[string]*GitHubRelease{
+				officialGithubRepo: {
+					TagName: "v0.1.132",
+					Name:    "v0.1.132",
+				},
 			},
 		},
 		"0.1.132",
@@ -69,10 +86,70 @@ func TestUpdateServicePerformUpdateNoUpdateReturnsSentinel(t *testing.T) {
 	require.ErrorIs(t, err, ErrNoUpdateAvailable)
 }
 
+func TestUpdateServicePerformUpdateUsesMatchingPatchedRelease(t *testing.T) {
+	officialAsset := GitHubAsset{
+		Name:               fmt.Sprintf("sub2api_0.1.133_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH),
+		BrowserDownloadURL: "https://github.com/Wei-Shaw/sub2api/official.tar.gz",
+	}
+	patchedAsset := GitHubAsset{
+		Name:               fmt.Sprintf("sub2api_0.1.133_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH),
+		BrowserDownloadURL: "https://github.com/xin927706524-bot/sub2api-patched/patched.tar.gz",
+	}
+	client := &updateServiceGitHubClientStub{
+		latestByRepo: map[string]*GitHubRelease{
+			officialGithubRepo: {
+				TagName: "v0.1.133",
+				Assets:  []GitHubAsset{officialAsset},
+			},
+		},
+		recentByRepo: map[string][]*GitHubRelease{
+			patchedGithubRepo: {{
+				TagName: "v0.1.133",
+				Assets:  []GitHubAsset{patchedAsset},
+			}},
+		},
+	}
+	svc := NewUpdateService(&updateServiceCacheStub{}, client, "0.1.132", "release")
+
+	err := svc.PerformUpdate(context.Background())
+
+	require.ErrorIs(t, err, errUpdateDownloadStopped)
+	require.Equal(t, []string{patchedAsset.BrowserDownloadURL}, client.downloadURLs)
+}
+
+func TestUpdateServicePerformUpdateRefusesOfficialFallback(t *testing.T) {
+	officialAsset := GitHubAsset{
+		Name:               fmt.Sprintf("sub2api_0.1.133_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH),
+		BrowserDownloadURL: "https://github.com/Wei-Shaw/sub2api/official.tar.gz",
+	}
+	client := &updateServiceGitHubClientStub{
+		latestByRepo: map[string]*GitHubRelease{
+			officialGithubRepo: {
+				TagName: "v0.1.133",
+				Assets:  []GitHubAsset{officialAsset},
+			},
+		},
+		recentByRepo: map[string][]*GitHubRelease{
+			patchedGithubRepo: {{TagName: "v0.1.132"}},
+		},
+	}
+	svc := NewUpdateService(&updateServiceCacheStub{}, client, "0.1.132", "release")
+
+	err := svc.PerformUpdate(context.Background())
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "refusing to install the official release")
+	require.Empty(t, client.downloadURLs)
+}
+
 func newRollbackTestService(current string, releases []*GitHubRelease) *UpdateService {
 	return NewUpdateService(
 		&updateServiceCacheStub{},
-		&updateServiceGitHubClientStub{recentReleases: releases},
+		&updateServiceGitHubClientStub{
+			recentByRepo: map[string][]*GitHubRelease{
+				patchedGithubRepo: releases,
+			},
+		},
 		current,
 		"release",
 	)

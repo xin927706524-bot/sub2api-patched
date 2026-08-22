@@ -28,6 +28,75 @@ func TestUsageLogFromService_IncludesOpenAIWSMode(t *testing.T) {
 	require.False(t, UsageLogFromServiceAdmin(httpLog).OpenAIWSMode)
 }
 
+func TestUsageLogFromService_AppliesDisplayTokenMultiplierOnlyForUser(t *testing.T) {
+	t.Parallel()
+
+	tokenMultiplier := 1.5
+	displayRateMultiplier := 1.2
+	log := &service.UsageLog{
+		InputTokens:           1020,
+		OutputTokens:          230,
+		CacheCreationTokens:   50,
+		CacheReadTokens:       25,
+		CacheCreation5mTokens: 40,
+		CacheCreation1hTokens: 10,
+		ImageInputTokens:      20,
+		ImageOutputTokens:     30,
+		InputCost:             0.003,
+		OutputCost:            0.003,
+		ImageInputCost:        0.00002,
+		ImageOutputCost:       0.00003,
+		CacheReadCost:         0.0005,
+		TotalCost:             0.012,
+		ActualCost:            0.0078,
+		RateMultiplier:        0.65,
+		Group: &service.Group{
+			RateMultiplier:         0.65,
+			DisplayRateMultiplier:  &displayRateMultiplier,
+			DisplayTokenMultiplier: &tokenMultiplier,
+		},
+	}
+
+	userDTO := UsageLogFromService(log)
+	adminDTO := UsageLogFromServiceAdmin(log)
+
+	require.Equal(t, 1530, userDTO.InputTokens)
+	require.Equal(t, 345, userDTO.OutputTokens)
+	require.Equal(t, 75, userDTO.CacheCreationTokens)
+	require.Equal(t, 38, userDTO.CacheReadTokens)
+	require.Equal(t, 60, userDTO.CacheCreation5mTokens)
+	require.Equal(t, 15, userDTO.CacheCreation1hTokens)
+	require.Equal(t, 30, userDTO.ImageInputTokens)
+	require.Equal(t, 45, userDTO.ImageOutputTokens)
+	require.Equal(t, 1.2, userDTO.RateMultiplier)
+	require.InDelta(t, 0.0045, userDTO.InputCost, 1e-12)
+	require.InDelta(t, 0.0045, userDTO.OutputCost, 1e-12)
+	require.InDelta(t, 0.00075, userDTO.CacheReadCost, 1e-12)
+	require.Equal(t, 0.0078, userDTO.TotalCost)
+	require.Equal(t, 0.0078, userDTO.ActualCost)
+	require.NotNil(t, userDTO.InputTokenPricePerMillion)
+	require.InDelta(t, 3, *userDTO.InputTokenPricePerMillion, 1e-9)
+	require.NotNil(t, userDTO.OutputTokenPricePerMillion)
+	require.InDelta(t, 15, *userDTO.OutputTokenPricePerMillion, 1e-9)
+	require.NotNil(t, userDTO.ImageInputTokenPricePerMillion)
+	require.InDelta(t, 1, *userDTO.ImageInputTokenPricePerMillion, 1e-9)
+	require.NotNil(t, userDTO.ImageOutputTokenPricePerMillion)
+	require.InDelta(t, 1, *userDTO.ImageOutputTokenPricePerMillion, 1e-9)
+
+	require.Equal(t, 1020, adminDTO.InputTokens)
+	require.Equal(t, 230, adminDTO.OutputTokens)
+	require.Equal(t, 50, adminDTO.CacheCreationTokens)
+	require.Equal(t, 25, adminDTO.CacheReadTokens)
+	require.Equal(t, 0.65, adminDTO.RateMultiplier)
+	require.InDelta(t, 0.003, adminDTO.InputCost, 1e-12)
+	require.InDelta(t, 0.003, adminDTO.OutputCost, 1e-12)
+	require.InDelta(t, 0.0005, adminDTO.CacheReadCost, 1e-12)
+	require.Equal(t, 0.012, adminDTO.TotalCost)
+	require.Equal(t, 0.0078, adminDTO.ActualCost)
+	require.InDelta(t, 3, *adminDTO.InputTokenPricePerMillion, 1e-9)
+	require.InDelta(t, 15, *adminDTO.OutputTokenPricePerMillion, 1e-9)
+}
+
 func TestUsageLogFromService_PrefersRequestTypeForLegacyFields(t *testing.T) {
 	t.Parallel()
 
@@ -166,7 +235,7 @@ func TestUsageLogFromService_KeepsUserBillingAndIPWithoutAdminCostFields(t *test
 	require.Equal(t, 0.02, userDTO.OutputCost)
 	require.Equal(t, 0.03, userDTO.CacheCreationCost)
 	require.Equal(t, 0.04, userDTO.CacheReadCost)
-	require.Equal(t, 0.10, userDTO.TotalCost)
+	require.Equal(t, 0.08, userDTO.TotalCost)
 	require.Equal(t, 0.08, userDTO.ActualCost)
 	require.Equal(t, 0.8, userDTO.RateMultiplier)
 	require.NotNil(t, userDTO.IPAddress)
@@ -177,6 +246,11 @@ func TestUsageLogFromService_KeepsUserBillingAndIPWithoutAdminCostFields(t *test
 	require.NotContains(t, string(userJSON), "account_rate_multiplier")
 	require.NotContains(t, string(userJSON), "account_stats_cost")
 	require.NotContains(t, string(userJSON), "account_cost")
+
+	adminDTO := UsageLogFromServiceAdmin(log)
+	require.Equal(t, 0.10, adminDTO.TotalCost)
+	require.Equal(t, 0.08, adminDTO.ActualCost)
+	require.Equal(t, 0.8, adminDTO.RateMultiplier)
 }
 
 func TestUsageLogFromService_FallsBackToLegacyModelWhenRequestedModelMissing(t *testing.T) {

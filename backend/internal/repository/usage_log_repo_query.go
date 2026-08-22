@@ -48,7 +48,14 @@ func (r *usageLogRepository) GetByID(ctx context.Context, id int64) (log *servic
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	return log, nil
+	if err = rows.Close(); err != nil {
+		return nil, err
+	}
+	logs := []service.UsageLog{*log}
+	if err = r.hydrateUsageLogAssociations(ctx, logs); err != nil {
+		return nil, err
+	}
+	return &logs[0], nil
 }
 
 func (r *usageLogRepository) ListByUser(ctx context.Context, userID int64, params pagination.PaginationParams) ([]service.UsageLog, *pagination.PaginationResult, error) {
