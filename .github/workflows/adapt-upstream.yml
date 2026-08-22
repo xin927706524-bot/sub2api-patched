@@ -1,6 +1,8 @@
 name: Adapt upstream release
 
 
+
+
 on:
   schedule:
     - cron: '0 0 * * *'
@@ -17,15 +19,21 @@ on:
         default: false
 
 
+
+
 permissions:
   contents: write
   actions: write
   issues: write
 
 
+
+
 concurrency:
   group: adapt-upstream
   cancel-in-progress: false
+
+
 
 
 jobs:
@@ -42,6 +50,8 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+
+
 
 
       - name: Configure Git
@@ -97,9 +107,12 @@ jobs:
         if: steps.target.outputs.already_adapted != 'true'
         run: echo "TARGET_TAG=${{ steps.target.outputs.target_tag }}" >> "$GITHUB_ENV"
 
+
       - name: Stop when already adapted
         if: steps.target.outputs.already_adapted == 'true'
         run: echo 'No work needed.'
+
+
 
 
       - name: Fetch official source
@@ -124,6 +137,8 @@ jobs:
           version: 9
 
 
+
+
       - name: Setup Node.js
         if: steps.target.outputs.already_adapted != 'true'
         uses: actions/setup-node@v6
@@ -131,6 +146,8 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
+
+
 
 
       - name: Setup Go
@@ -142,6 +159,8 @@ jobs:
           cache-dependency-path: backend/go.sum
 
 
+
+
       - name: Build frontend
         if: steps.target.outputs.already_adapted != 'true'
         run: |
@@ -150,10 +169,14 @@ jobs:
         working-directory: frontend
 
 
+
+
       - name: Generate backend code
         if: steps.target.outputs.already_adapted != 'true'
         run: go generate ./ent
         working-directory: backend
+
+
 
 
       - name: Verify backend
@@ -165,6 +188,8 @@ jobs:
           go test -tags unit ./internal/handler/admin -run 'UpdateGroupRequestDisplay(Rate|Token)TriState' -count=1
           go build ./...
         working-directory: backend
+
+
 
 
       - name: Review resulting change
@@ -182,7 +207,7 @@ jobs:
       - name: Publish adaptation
         if: steps.target.outputs.already_adapted != 'true' && env.DRY_RUN != 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
         run: |
           set -euo pipefail
           git push origin "HEAD:${{ github.event.repository.default_branch }}"
@@ -196,6 +221,8 @@ jobs:
       - name: Record validation-only result
         if: steps.target.outputs.already_adapted != 'true' && env.DRY_RUN == 'true'
         run: echo "Validated $TARGET_TAG successfully; dry run kept main, tags, and releases unchanged."
+
+
 
 
       - name: Create failure issue
