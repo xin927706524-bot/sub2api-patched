@@ -208,6 +208,8 @@ jobs:
         if: steps.target.outputs.already_adapted != 'true'
         run: |
           set -euo pipefail
+          # Keep the patched baseline OAuth test file so upstream credential fixtures are not published.
+          git checkout "${{ steps.target.outputs.base_ref }}" -- backend/internal/pkg/antigravity/oauth_test.go
           git add backend/cmd/server/VERSION backend/ent backend/internal frontend/src
           if ! git diff --cached --quiet; then
             git commit -m "chore: adapt patched build to ${TARGET_TAG}"
@@ -222,6 +224,12 @@ jobs:
           GH_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
         run: |
           set -euo pipefail
+          # Publish one squashed commit based on main so upstream secret-bearing history is not pushed.
+          patch_file="$RUNNER_TEMP/adaptation.patch"
+          git diff --binary "${{ steps.target.outputs.base_ref }}" HEAD > "$patch_file"
+          git checkout --quiet -B "publish/${TARGET_TAG}" "${{ steps.target.outputs.base_ref }}"
+          git apply --index "$patch_file"
+          git commit -m "chore: adapt patched build to ${TARGET_TAG}"
           git push origin "HEAD:${{ github.event.repository.default_branch }}"
           git tag -a "$TARGET_TAG" -m "Sub2API patched build $TARGET_TAG"
           git push origin "$TARGET_TAG"
@@ -252,5 +260,6 @@ jobs:
               --title "$title" \
               --body "The official release was not automatically published because validation failed. Check the workflow run and retry after fixing conflicts. No official binary was installed."
           fi
+
 
 
