@@ -238,6 +238,7 @@ jobs:
           git tag -a "$TARGET_TAG" -m "Sub2API patched build $TARGET_TAG"
           git push origin "$TARGET_TAG"
           gh workflow run release.yml \
+            --repo '${{ github.repository }}' \
             --ref '${{ github.event.repository.default_branch }}' \
             -f tag="$TARGET_TAG" \
             -f simple_release=false
