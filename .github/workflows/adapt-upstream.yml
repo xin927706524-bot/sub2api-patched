@@ -135,8 +135,7 @@ jobs:
               git add backend/cmd/server/VERSION
             else
               echo "Unresolved merge conflicts:" >&2
-              printf '%s
-' "$unresolved" >&2
+              printf '%s\n' "$unresolved" >&2
               git merge --abort
               exit 1
             fi
@@ -253,4 +252,5 @@ jobs:
               --title "$title" \
               --body "The official release was not automatically published because validation failed. Check the workflow run and retry after fixing conflicts. No official binary was installed."
           fi
+
 
