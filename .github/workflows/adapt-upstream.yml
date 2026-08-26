@@ -210,6 +210,7 @@ jobs:
           set -euo pipefail
           # Keep baseline OAuth files because modifying their blobs retriggers push protection
           # for public upstream credentials that already exist in the patched history.
+          git checkout "${{ steps.target.outputs.base_ref }}" -- .github/workflows
           git checkout "${{ steps.target.outputs.base_ref }}" -- \
             backend/internal/pkg/antigravity/oauth.go \
             backend/internal/pkg/antigravity/oauth_test.go
@@ -263,4 +264,3 @@ jobs:
               --title "$title" \
               --body "The official release was not automatically published because validation failed. Check the workflow run and retry after fixing conflicts. No official binary was installed."
           fi
-
