@@ -213,7 +213,7 @@ jobs:
           git checkout "${{ steps.target.outputs.base_ref }}" -- \
             backend/internal/pkg/antigravity/oauth.go \
             backend/internal/pkg/antigravity/oauth_test.go
-          git add backend/cmd/server/VERSION backend/ent backend/internal frontend/src
+          git add backend/cmd/server/VERSION backend/go.sum backend/ent backend/internal frontend/src
           if ! git diff --cached --quiet; then
             git commit -m "chore: adapt patched build to ${TARGET_TAG}"
           else
@@ -263,5 +263,4 @@ jobs:
               --title "$title" \
               --body "The official release was not automatically published because validation failed. Check the workflow run and retry after fixing conflicts. No official binary was installed."
           fi
-
 
