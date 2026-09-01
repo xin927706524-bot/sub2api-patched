@@ -99,9 +99,11 @@ jobs:
 
           echo "already_adapted=false" >> "$GITHUB_OUTPUT"
           echo "target_tag=${TARGET_TAG}" >> "$GITHUB_OUTPUT"
+          echo "base_tag=${BASE_TAG}" >> "$GITHUB_OUTPUT"
           echo "base_ref=origin/${{ github.event.repository.default_branch }}" >> "$GITHUB_OUTPUT"
           echo "Official target: $TARGET_TAG"
-          echo "Patched baseline: origin/${{ github.event.repository.default_branch }}"
+          echo "Patched baseline tag: $BASE_TAG"
+          echo "Patched workflow source: origin/${{ github.event.repository.default_branch }}"
 
       - name: Export selected target
         if: steps.target.outputs.already_adapted != 'true'
@@ -115,30 +117,44 @@ jobs:
 
 
 
-      - name: Fetch official source
+      - name: Fetch official source and patched baseline
         if: steps.target.outputs.already_adapted != 'true'
         run: |
           set -euo pipefail
           git remote add upstream https://github.com/Wei-Shaw/sub2api.git
+          git fetch --no-tags upstream "refs/tags/${{ steps.target.outputs.base_tag }}:refs/tags/upstream-${{ steps.target.outputs.base_tag }}"
           git fetch --no-tags upstream "refs/tags/${TARGET_TAG}:refs/tags/upstream-${TARGET_TAG}"
           git checkout --quiet -B "adapt/${TARGET_TAG}" "refs/tags/upstream-${TARGET_TAG}"
+          # The resolver is maintained on the patched main branch, not in upstream.
+          git checkout "${{ steps.target.outputs.base_ref }}" -- .github/scripts/merge-display-patch.py
 
-      - name: Merge patched changes
+      - name: Apply patched changes
         if: steps.target.outputs.already_adapted != 'true'
         run: |
           set -euo pipefail
-          if ! git merge --no-ff --no-commit "${{ steps.target.outputs.base_ref }}"; then
+          patch_file="$RUNNER_TEMP/patched-source.patch"
+          # Extract only the user's changes from the last patched release.  Merging
+          # the entire patched main branch would replay all upstream history and
+          # creates conflicts whenever upstream refactors a touched file.
+          git diff --binary \
+            "refs/tags/upstream-${{ steps.target.outputs.base_tag }}" \
+            "refs/tags/${{ steps.target.outputs.base_tag }}" > "$patch_file"
+
+          if ! git apply --3way --index "$patch_file"; then
             unresolved=$(git diff --name-only --diff-filter=U)
-            if [ "$unresolved" = "backend/cmd/server/VERSION" ]; then
-              echo "Resolving the version file in favor of the official release."
-              git checkout --ours -- backend/cmd/server/VERSION
-              git add backend/cmd/server/VERSION
-            else
-              echo "Unresolved merge conflicts:" >&2
-              printf '%s\n' "$unresolved" >&2
-              git merge --abort
+            if [ -z "$unresolved" ]; then
+              echo 'The patched-source diff could not be applied.' >&2
               exit 1
             fi
+            python3 .github/scripts/merge-display-patch.py \
+              --patched-ref "refs/tags/${{ steps.target.outputs.base_tag }}"
+          fi
+
+          unresolved=$(git diff --name-only --diff-filter=U)
+          if [ -n "$unresolved" ]; then
+            echo 'Unresolved patch conflicts:' >&2
+            printf '%s\n' "$unresolved" >&2
+            exit 1
           fi
           echo "${TARGET_TAG#v}" > backend/cmd/server/VERSION
 
@@ -169,6 +185,16 @@ jobs:
           go-version-file: backend/go.mod
           check-latest: false
           cache-dependency-path: backend/go.sum
+
+      - name: Format resolved patch files
+        if: steps.target.outputs.already_adapted != 'true'
+        run: |
+          gofmt -w \
+            backend/internal/handler/dto/mappers.go \
+            backend/internal/handler/dto/mappers_usage_test.go
+          git add \
+            backend/internal/handler/dto/mappers.go \
+            backend/internal/handler/dto/mappers_usage_test.go
 
 
 
@@ -214,12 +240,14 @@ jobs:
           git checkout "${{ steps.target.outputs.base_ref }}" -- \
             backend/internal/pkg/antigravity/oauth.go \
             backend/internal/pkg/antigravity/oauth_test.go
-          git add backend/cmd/server/VERSION backend/go.sum backend/ent backend/internal frontend/src
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: adapt patched build to ${TARGET_TAG}"
-          else
-            git commit -m "chore: adapt patched build to ${TARGET_TAG}"
-          fi
+          # Keep the complete official release, including files outside the
+          # generated/backend/frontend directories.  The protected OAuth files
+          # and workflow files were restored above before staging everything.
+          git add -A
+          # The repository ignores generic "scripts" directories, but this
+          # resolver must travel with the patched branch for future runs.
+          git add -f .github/scripts/merge-display-patch.py
+          git commit -m "chore: adapt patched build to ${TARGET_TAG}"
           git show --stat --oneline HEAD
 
       - name: Publish adaptation
