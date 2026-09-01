@@ -30,7 +30,7 @@ def git_write_stage(path: str, stage: int) -> None:
 
 
 def extract_function(source: str, name: str) -> str:
-    match = re.search(rf"(?m)^func {re.escape(name)}\([^\n]*\) \{{", source)
+    match = re.search(rf"(?m)^func {re.escape(name)}\([^\n]*\)[^{{\n]*\{{", source)
     if not match:
         raise ValueError(f"function {name} was not found")
 
@@ -67,6 +67,7 @@ def merge_mapper(path: str, patched_ref: str) -> None:
         raise ValueError("upstream usage mapper shape is not recognized")
 
     source = source.replace('"strconv"\n\t"strings"', '"math"\n\t"strconv"\n\t"strings"', 1)
+    source = merge_group_mapper(source)
     source = source.replace(
         "func usageLogFromServiceUser(l *service.UsageLog) UsageLog {",
         "func usageLogFromService(l *service.UsageLog, applyDisplayTokenMultiplier bool) UsageLog {",
@@ -140,6 +141,55 @@ def merge_mapper(path: str, patched_ref: str) -> None:
     source = source.replace("usageLog := usageLogFromServiceUser(l)", "usageLog := usageLogFromService(l, false)", 1)
     target.write_text(source, encoding="utf-8", newline="")
     subprocess.check_call(["git", "add", path])
+
+
+def merge_group_mapper(source: str) -> str:
+    """Reapply the group display-rate fields that share this mapper file."""
+    admin = extract_function(source, "GroupFromServiceAdmin")
+    if "DisplayRateMultiplier:" not in admin:
+        group_anchor = re.compile(
+            r"(?m)^(\s*Group:\s+groupFromServiceBase\(g\),\s*\n)"
+        )
+        match = group_anchor.search(admin)
+        if not match:
+            raise ValueError("admin group mapper anchor was not found")
+        indent = re.match(r"\s*", match.group(1)).group(0)
+        addition = (
+            f"{indent}DisplayRateMultiplier:       g.DisplayRateMultiplier,\n"
+            f"{indent}DisplayTokenMultiplier:      g.DisplayTokenMultiplier,\n"
+        )
+        admin = admin[: match.end()] + addition + admin[match.end() :]
+        admin_anchor = "\n\t}\n\tif len(g.AccountGroups) > 0 {"
+        if admin_anchor not in admin:
+            raise ValueError("admin group mapper return anchor was not found")
+        admin = admin.replace(
+            admin_anchor,
+            "\n\t}\n\t// Admin responses retain the real billing multiplier and expose the\n"
+            "\t// optional display override separately.\n"
+            "\tout.RateMultiplier = g.RateMultiplier\n"
+            "\tif len(g.AccountGroups) > 0 {",
+            1,
+        )
+        source = source.replace(
+            extract_function(source, "GroupFromServiceAdmin"), admin, 1
+        )
+
+    base = extract_function(source, "groupFromServiceBase")
+    if "out.RateMultiplier = g.PublicRateMultiplier()" not in base:
+        if "return Group{" not in base:
+            raise ValueError("group mapper return anchor was not found")
+        base = base.replace("return Group{", "out := Group{", 1)
+        if not base.endswith("\n}"):
+            raise ValueError("group mapper function boundary was not found")
+        base = (
+            base[:-1]
+            + "\tout.RateMultiplier = g.PublicRateMultiplier()\n"
+            + "\treturn out\n}"
+        )
+        source = source.replace(
+            extract_function(source, "groupFromServiceBase"), base, 1
+        )
+    return source
 
 
 def merge_usage_test(path: str, patched_ref: str) -> None:
