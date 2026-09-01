@@ -4,6 +4,7 @@ package dto
 import (
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -69,10 +70,11 @@ func UserFromServiceAdmin(u *service.User) *AdminUser {
 		return nil
 	}
 	return &AdminUser{
-		User:       *base,
-		Notes:      u.Notes,
-		LastUsedAt: u.LastUsedAt,
-		GroupRates: u.GroupRates,
+		User:                 *base,
+		Notes:                u.Notes,
+		LastUsedAt:           u.LastUsedAt,
+		GroupRates:           u.GroupRates,
+		RestrictPublicGroups: u.RestrictPublicGroups,
 	}
 }
 
@@ -165,8 +167,8 @@ func GroupFromServiceAdmin(g *service.Group) *AdminGroup {
 		RateLimitedAccountCount:     g.RateLimitedAccountCount,
 		SortOrder:                   g.SortOrder,
 	}
-	// The shared base mapper is user-facing. Admin responses keep the real
-	// billing multiplier and expose the optional display override separately.
+	// Admin responses retain the real billing multiplier and expose the
+	// optional display override separately.
 	out.RateMultiplier = g.RateMultiplier
 	if len(g.AccountGroups) > 0 {
 		out.AccountGroups = make([]AccountGroup, 0, len(g.AccountGroups))
@@ -676,7 +678,7 @@ func usageLogFromService(l *service.UsageLog, applyDisplayTokenMultiplier bool) 
 		RequestID:                       l.RequestID,
 		Model:                           requestedModel,
 		ServiceTier:                     l.ServiceTier,
-		ReasoningEffort:                 l.ReasoningEffort,
+		ReasoningEffort:                 userFacingReasoningEffort(l),
 		InboundEndpoint:                 l.InboundEndpoint,
 		GroupID:                         l.GroupID,
 		SubscriptionID:                  l.SubscriptionID,
@@ -702,6 +704,7 @@ func usageLogFromService(l *service.UsageLog, applyDisplayTokenMultiplier bool) 
 		RequestType:                     requestType.String(),
 		Stream:                          stream,
 		OpenAIWSMode:                    openAIWSMode,
+		NativeCompactionV2:              l.NativeCompactionV2,
 		DurationMs:                      l.DurationMs,
 		FirstTokenMs:                    l.FirstTokenMs,
 		ImageCount:                      l.ImageCount,
@@ -747,18 +750,51 @@ func UsageLogFromServiceAdmin(l *service.UsageLog) *AdminUsageLog {
 	usageLog := usageLogFromService(l, false)
 	usageLog.UpstreamEndpoint = l.UpstreamEndpoint
 	return &AdminUsageLog{
-		UsageLog:              usageLog,
-		UpstreamModel:         l.UpstreamModel,
-		UpstreamResponseModel: l.UpstreamResponseModel,
-		UpstreamModelMismatch: l.UpstreamModelMismatch,
-		ChannelID:             l.ChannelID,
-		ModelMappingChain:     l.ModelMappingChain,
-		BillingTier:           l.BillingTier,
-		AccountRateMultiplier: l.AccountRateMultiplier,
-		AccountStatsCost:      l.AccountStatsCost,
-		IPAddress:             l.IPAddress,
-		Account:               AccountSummaryFromService(l.Account),
+		UsageLog:                usageLog,
+		UpstreamModel:           l.UpstreamModel,
+		UpstreamReasoningEffort: adminUpstreamReasoningEffort(l),
+		UpstreamResponseModel:   l.UpstreamResponseModel,
+		UpstreamModelMismatch:   l.UpstreamModelMismatch,
+		ChannelID:               l.ChannelID,
+		ModelMappingChain:       l.ModelMappingChain,
+		BillingTier:             l.BillingTier,
+		AccountRateMultiplier:   l.AccountRateMultiplier,
+		AccountStatsCost:        l.AccountStatsCost,
+		IPAddress:               l.IPAddress,
+		Account:                 AccountSummaryFromService(l.Account),
 	}
+}
+
+func userFacingReasoningEffort(l *service.UsageLog) *string {
+	if l == nil {
+		return nil
+	}
+	if requested := strings.TrimSpace(derefString(l.RequestedReasoningEffort)); requested != "" {
+		return &requested
+	}
+	return l.ReasoningEffort
+}
+
+func adminUpstreamReasoningEffort(l *service.UsageLog) *string {
+	if l == nil {
+		return nil
+	}
+	forwarded := strings.TrimSpace(derefString(l.ReasoningEffort))
+	if forwarded == "" {
+		return nil
+	}
+	requested := userFacingReasoningEffort(l)
+	if requested != nil && service.NormalizeMaxReasoningEffort(*requested) == service.NormalizeMaxReasoningEffort(forwarded) {
+		return nil
+	}
+	return &forwarded
+}
+
+func derefString(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }
 
 func UsageCleanupTaskFromService(task *service.UsageCleanupTask) *UsageCleanupTask {

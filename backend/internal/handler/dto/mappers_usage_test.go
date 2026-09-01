@@ -8,26 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUsageLogFromService_IncludesOpenAIWSMode(t *testing.T) {
-	t.Parallel()
-
-	wsLog := &service.UsageLog{
-		RequestID:    "req_1",
-		Model:        "gpt-5.3-codex",
-		OpenAIWSMode: true,
-	}
-	httpLog := &service.UsageLog{
-		RequestID:    "resp_1",
-		Model:        "gpt-5.3-codex",
-		OpenAIWSMode: false,
-	}
-
-	require.True(t, UsageLogFromService(wsLog).OpenAIWSMode)
-	require.False(t, UsageLogFromService(httpLog).OpenAIWSMode)
-	require.True(t, UsageLogFromServiceAdmin(wsLog).OpenAIWSMode)
-	require.False(t, UsageLogFromServiceAdmin(httpLog).OpenAIWSMode)
-}
-
 func TestUsageLogFromService_AppliesDisplayTokenMultiplierOnlyForUser(t *testing.T) {
 	t.Parallel()
 
@@ -95,6 +75,47 @@ func TestUsageLogFromService_AppliesDisplayTokenMultiplierOnlyForUser(t *testing
 	require.Equal(t, 0.0078, adminDTO.ActualCost)
 	require.InDelta(t, 3, *adminDTO.InputTokenPricePerMillion, 1e-9)
 	require.InDelta(t, 15, *adminDTO.OutputTokenPricePerMillion, 1e-9)
+}
+
+func TestUsageLogFromService_IncludesOpenAIWSMode(t *testing.T) {
+	t.Parallel()
+
+	wsLog := &service.UsageLog{
+		RequestID:    "req_1",
+		Model:        "gpt-5.3-codex",
+		OpenAIWSMode: true,
+	}
+	httpLog := &service.UsageLog{
+		RequestID:    "resp_1",
+		Model:        "gpt-5.3-codex",
+		OpenAIWSMode: false,
+	}
+
+	require.True(t, UsageLogFromService(wsLog).OpenAIWSMode)
+	require.False(t, UsageLogFromService(httpLog).OpenAIWSMode)
+	require.True(t, UsageLogFromServiceAdmin(wsLog).OpenAIWSMode)
+	require.False(t, UsageLogFromServiceAdmin(httpLog).OpenAIWSMode)
+}
+
+func TestUsageLogFromService_PreservesNativeCompactionAndStream(t *testing.T) {
+	t.Parallel()
+
+	log := &service.UsageLog{
+		RequestID:          "resp_compaction",
+		Model:              "gpt-5.6-sol",
+		RequestType:        service.RequestTypeStream,
+		Stream:             true,
+		NativeCompactionV2: true,
+	}
+
+	userDTO := UsageLogFromService(log)
+	adminDTO := UsageLogFromServiceAdmin(log)
+	require.Equal(t, "stream", userDTO.RequestType)
+	require.True(t, userDTO.Stream)
+	require.True(t, userDTO.NativeCompactionV2)
+	require.Equal(t, "stream", adminDTO.RequestType)
+	require.True(t, adminDTO.Stream)
+	require.True(t, adminDTO.NativeCompactionV2)
 }
 
 func TestUsageLogFromService_PrefersRequestTypeForLegacyFields(t *testing.T) {
@@ -235,7 +256,7 @@ func TestUsageLogFromService_KeepsUserBillingAndIPWithoutAdminCostFields(t *test
 	require.Equal(t, 0.02, userDTO.OutputCost)
 	require.Equal(t, 0.03, userDTO.CacheCreationCost)
 	require.Equal(t, 0.04, userDTO.CacheReadCost)
-	require.Equal(t, 0.08, userDTO.TotalCost)
+	require.Equal(t, 0.10, userDTO.TotalCost)
 	require.Equal(t, 0.08, userDTO.ActualCost)
 	require.Equal(t, 0.8, userDTO.RateMultiplier)
 	require.NotNil(t, userDTO.IPAddress)
@@ -246,11 +267,61 @@ func TestUsageLogFromService_KeepsUserBillingAndIPWithoutAdminCostFields(t *test
 	require.NotContains(t, string(userJSON), "account_rate_multiplier")
 	require.NotContains(t, string(userJSON), "account_stats_cost")
 	require.NotContains(t, string(userJSON), "account_cost")
+}
+
+func TestUsageLogFromService_UsersSeeRequestedReasoningEffortOnly(t *testing.T) {
+	t.Parallel()
+
+	requested := "max"
+	forwarded := "xhigh"
+	log := &service.UsageLog{
+		RequestID:                "req_effort",
+		Model:                    "gpt-5.4",
+		ReasoningEffort:          &forwarded,
+		RequestedReasoningEffort: &requested,
+	}
+
+	userDTO := UsageLogFromService(log)
+	adminDTO := UsageLogFromServiceAdmin(log)
+
+	require.NotNil(t, userDTO.ReasoningEffort)
+	require.Equal(t, requested, *userDTO.ReasoningEffort)
+	require.NotNil(t, adminDTO.ReasoningEffort)
+	require.Equal(t, requested, *adminDTO.ReasoningEffort)
+	require.NotNil(t, adminDTO.UpstreamReasoningEffort)
+	require.Equal(t, forwarded, *adminDTO.UpstreamReasoningEffort)
+
+	userJSON, err := json.Marshal(userDTO)
+	require.NoError(t, err)
+	require.Contains(t, string(userJSON), `"reasoning_effort":"max"`)
+	require.NotContains(t, string(userJSON), "upstream_reasoning_effort")
+	require.NotContains(t, string(userJSON), "requested_reasoning_effort")
+
+	adminJSON, err := json.Marshal(adminDTO)
+	require.NoError(t, err)
+	require.Contains(t, string(adminJSON), `"reasoning_effort":"max"`)
+	require.Contains(t, string(adminJSON), `"upstream_reasoning_effort":"xhigh"`)
+}
+
+func TestUsageLogFromService_OmitsUpstreamReasoningEffortWhenUnmapped(t *testing.T) {
+	t.Parallel()
+
+	effort := "high"
+	log := &service.UsageLog{
+		RequestID:                "req_effort_same",
+		Model:                    "gpt-5.4",
+		ReasoningEffort:          &effort,
+		RequestedReasoningEffort: &effort,
+	}
 
 	adminDTO := UsageLogFromServiceAdmin(log)
-	require.Equal(t, 0.10, adminDTO.TotalCost)
-	require.Equal(t, 0.08, adminDTO.ActualCost)
-	require.Equal(t, 0.8, adminDTO.RateMultiplier)
+	require.NotNil(t, adminDTO.ReasoningEffort)
+	require.Equal(t, effort, *adminDTO.ReasoningEffort)
+	require.Nil(t, adminDTO.UpstreamReasoningEffort)
+
+	adminJSON, err := json.Marshal(adminDTO)
+	require.NoError(t, err)
+	require.NotContains(t, string(adminJSON), "upstream_reasoning_effort")
 }
 
 func TestUsageLogFromService_FallsBackToLegacyModelWhenRequestedModelMissing(t *testing.T) {
