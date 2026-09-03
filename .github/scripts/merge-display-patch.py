@@ -211,6 +211,103 @@ def merge_usage_test(path: str, patched_ref: str) -> None:
     subprocess.check_call(["git", "add", path])
 
 
+def resolve_markers(source: str, path: str, include_theirs: bool) -> str:
+    """Resolve git conflict markers while preserving already-merged surrounding edits."""
+    lines = source.splitlines(keepends=True)
+    merged: list[str] = []
+    index = 0
+    while index < len(lines):
+        if not lines[index].startswith("<<<<<<< ours"):
+            merged.append(lines[index])
+            index += 1
+            continue
+        index += 1
+        ours: list[str] = []
+        while index < len(lines) and not lines[index].startswith("======="):
+            ours.append(lines[index])
+            index += 1
+        if index >= len(lines):
+            raise ValueError(f"unterminated conflict in {path}")
+        index += 1
+        theirs: list[str] = []
+        while index < len(lines) and not lines[index].startswith(">>>>>>> theirs"):
+            theirs.append(lines[index])
+            index += 1
+        if index >= len(lines):
+            raise ValueError(f"unterminated conflict in {path}")
+        index += 1
+        merged.extend(ours)
+        if include_theirs:
+            ours_normalized = {line.strip() for line in ours if line.strip()}
+            merged.extend(
+                line for line in theirs if not line.strip() or line.strip() not in ours_normalized
+            )
+    return "".join(merged)
+
+
+def keep_upstream_generated(path: str) -> None:
+    """Resolve generated-file hunks in favor of upstream while keeping non-overlapping patch additions."""
+    target = Path(path)
+    source = target.read_text(encoding="utf-8")
+    if "<<<<<<< ours" not in source:
+        git_write_stage(path, 2)
+    else:
+        target.write_text(
+            resolve_markers(source, path, include_theirs=False),
+            encoding="utf-8",
+            newline="",
+        )
+    subprocess.check_call(["git", "add", path])
+
+
+def merge_admin_dto_types(path: str) -> None:
+    """Keep upstream admin fields while retaining the patched display overrides."""
+    target = Path(path)
+    source = target.read_text(encoding="utf-8")
+    if "<<<<<<< ours" in source:
+        source = resolve_markers(source, path, include_theirs=True)
+    else:
+        git_write_stage(path, 2)
+        source = target.read_text(encoding="utf-8")
+    if "DisplayRateMultiplier" not in source:
+        anchor = "type AdminGroup struct {\n\tGroup\n"
+        if anchor not in source:
+            raise ValueError("admin DTO group anchor was not found")
+        source = source.replace(
+            anchor,
+            anchor
+            + '\tDisplayRateMultiplier  *float64 `json:"display_rate_multiplier"`\n'
+            + '\tDisplayTokenMultiplier *float64 `json:"display_token_multiplier"`\n',
+            1,
+        )
+    target.write_text(source, encoding="utf-8", newline="")
+    subprocess.check_call(["git", "add", path])
+
+
+def merge_frontend_types(path: str) -> None:
+    """Keep upstream admin type additions while retaining patched display fields."""
+    target = Path(path)
+    source = target.read_text(encoding="utf-8")
+    if "<<<<<<< ours" in source:
+        source = resolve_markers(source, path, include_theirs=True)
+    else:
+        git_write_stage(path, 2)
+        source = target.read_text(encoding="utf-8")
+    if "display_rate_multiplier" not in source:
+        anchor = "export interface AdminGroup extends Group {\n"
+        if anchor not in source:
+            raise ValueError("frontend admin group anchor was not found")
+        source = source.replace(
+            anchor,
+            anchor
+            + "  display_rate_multiplier: number | null\n"
+            + "  display_token_multiplier: number | null\n",
+            1,
+        )
+    target.write_text(source, encoding="utf-8", newline="")
+    subprocess.check_call(["git", "add", path])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--patched-ref", required=True)
@@ -219,8 +316,12 @@ def main() -> int:
     conflicted = [line for line in git("diff", "--name-only", "--diff-filter=U").splitlines() if line]
     allowed = {
         "backend/cmd/server/VERSION",
+        "backend/ent/mutation.go",
+        "backend/ent/runtime/runtime.go",
         "backend/internal/handler/dto/mappers.go",
         "backend/internal/handler/dto/mappers_usage_test.go",
+        "backend/internal/handler/dto/types.go",
+        "frontend/src/types/index.ts",
     }
     unexpected = sorted(set(conflicted) - allowed)
     if unexpected:
@@ -233,10 +334,17 @@ def main() -> int:
     if "backend/cmd/server/VERSION" in conflicted:
         git_write_stage("backend/cmd/server/VERSION", 2)
         subprocess.check_call(["git", "add", "backend/cmd/server/VERSION"])
+    for path in ("backend/ent/mutation.go", "backend/ent/runtime/runtime.go"):
+        if path in conflicted:
+            keep_upstream_generated(path)
     if "backend/internal/handler/dto/mappers.go" in conflicted:
         merge_mapper("backend/internal/handler/dto/mappers.go", args.patched_ref)
     if "backend/internal/handler/dto/mappers_usage_test.go" in conflicted:
         merge_usage_test("backend/internal/handler/dto/mappers_usage_test.go", args.patched_ref)
+    if "backend/internal/handler/dto/types.go" in conflicted:
+        merge_admin_dto_types("backend/internal/handler/dto/types.go")
+    if "frontend/src/types/index.ts" in conflicted:
+        merge_frontend_types("frontend/src/types/index.ts")
     return 0
 
 
