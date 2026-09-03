@@ -138,7 +138,8 @@ jobs:
           # creates conflicts whenever upstream refactors a touched file.
           git diff --binary \
             "refs/tags/upstream-${{ steps.target.outputs.base_tag }}" \
-            "refs/tags/${{ steps.target.outputs.base_tag }}" > "$patch_file"
+            "refs/tags/${{ steps.target.outputs.base_tag }}" \
+            -- . ':(exclude).github/scripts/merge-display-patch.py' > "$patch_file"
 
           if ! git apply --3way --index "$patch_file"; then
             unresolved=$(git diff --name-only --diff-filter=U)
