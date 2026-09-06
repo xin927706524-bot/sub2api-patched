@@ -200,12 +200,8 @@ jobs:
       - name: Format resolved patch files
         if: steps.target.outputs.already_adapted != 'true'
         run: |
-          gofmt -w \
-            backend/internal/handler/dto/mappers.go \
-            backend/internal/handler/dto/mappers_usage_test.go
-          git add \
-            backend/internal/handler/dto/mappers.go \
-            backend/internal/handler/dto/mappers_usage_test.go
+          git ls-files -z -- '*.go' | xargs -0 gofmt -w
+          git ls-files -z -- '*.go' | xargs -0 git add --
 
 
 
