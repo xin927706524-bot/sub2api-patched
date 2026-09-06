@@ -691,7 +691,7 @@ func usageLogFromService(l *service.UsageLog, applyDisplayTokenMultiplier bool) 
 		requestedModel = l.Model
 	}
 	tokenMultiplier := 1.0
-	if applyDisplayTokenMultiplier {
+	if applyDisplayTokenMultiplier && l.Group != nil {
 		tokenMultiplier = l.Group.PublicTokenMultiplier()
 	}
 	displayTokens := func(tokens int) int {
@@ -701,7 +701,7 @@ func usageLogFromService(l *service.UsageLog, applyDisplayTokenMultiplier bool) 
 		return cost * tokenMultiplier
 	}
 	tokenPricePerMillion := func(cost float64, tokens int) *float64 {
-		if tokens <= 0 {
+		if tokens <= 0 || cost <= 0 {
 			return nil
 		}
 		price := cost / float64(tokens) * 1_000_000
@@ -709,10 +709,8 @@ func usageLogFromService(l *service.UsageLog, applyDisplayTokenMultiplier bool) 
 	}
 	rateMultiplier := l.RateMultiplier
 	totalCost := l.TotalCost
-	if applyDisplayTokenMultiplier {
-		if l.Group != nil {
-			rateMultiplier = l.Group.PublicRateMultiplier()
-		}
+	if applyDisplayTokenMultiplier && l.Group != nil {
+		rateMultiplier = l.Group.PublicRateMultiplier()
 		totalCost = l.ActualCost
 	}
 	return UsageLog{
