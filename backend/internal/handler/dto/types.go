@@ -169,7 +169,7 @@ type AdminGroup struct {
 	// ForceOpenAIFast 是管理端请求策略，用户侧分组 DTO 无需暴露。
 	ForceOpenAIFast bool `json:"force_openai_fast"`
 	// FreeOpenAIFast 是管理端计费策略，用户侧分组 DTO 无需暴露。
-	FreeOpenAIFast bool `json:"free_openai_fast"`
+	FreeOpenAIFast         bool `json:"free_openai_fast"`
 	DisplayRateMultiplier  *float64 `json:"display_rate_multiplier"`
 	DisplayTokenMultiplier *float64 `json:"display_token_multiplier"`
 
