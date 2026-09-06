@@ -5,7 +5,8 @@ name: Adapt upstream release
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    # Avoid the top of the hour, when GitHub's scheduled-workflow queue is busiest.
+    - cron: '17 0 * * *'
   workflow_dispatch:
     inputs:
       target_tag:
@@ -65,7 +66,16 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$TARGET_TAG" ]; then
-            TARGET_TAG=$(curl -fsSL https://api.github.com/repos/Wei-Shaw/sub2api/releases/latest | jq -r '.tag_name')
+            # Read upstream's Git tags directly. The releases/latest API can lag
+            # behind a newly published release and make a valid run skip work.
+            TARGET_TAG=$(
+              git ls-remote --tags https://github.com/Wei-Shaw/sub2api.git \
+                | cut -f2 \
+                | sed -e 's|^refs/tags/||' -e 's|\^{}$||' \
+                | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+                | sort -V \
+                | tail -1
+            )
           fi
           if ! printf '%s\n' "$TARGET_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "Refusing unsupported official tag: $TARGET_TAG" >&2
