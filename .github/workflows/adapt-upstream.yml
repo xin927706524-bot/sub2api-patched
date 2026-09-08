@@ -143,13 +143,16 @@ jobs:
         run: |
           set -euo pipefail
           patch_file="$RUNNER_TEMP/patched-source.patch"
-          # Extract only the user's changes from the last patched release.  Merging
-          # the entire patched main branch would replay all upstream history and
-          # creates conflicts whenever upstream refactors a touched file.
+          # Carry forward the current patched main branch so fixes made after the
+          # last release are included in the next adaptation.  Exclude files that
+          # are generated or rewritten explicitly below.
           git diff --binary \
             "refs/tags/upstream-${{ steps.target.outputs.base_tag }}" \
-            "refs/tags/${{ steps.target.outputs.base_tag }}" \
-            -- . ':(exclude).github/scripts/merge-display-patch.py' > "$patch_file"
+            origin/main \
+            -- . \
+            ':(exclude).github/scripts/merge-display-patch.py' \
+            ':(exclude)backend/cmd/server/VERSION' \
+            ':(exclude)backend/ent/runtime/runtime.go' > "$patch_file"
 
           if ! git apply --3way --index "$patch_file"; then
             unresolved=$(git diff --name-only --diff-filter=U)
